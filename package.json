@@ -4,8 +4,9 @@
   "description": "A new take on the chatter app with ts and react",
   "main": "./src/server",
   "scripts": {
+    "start": "node ./public/server.js",
     "build": "tsc --watch",
-    "start": "nodemon ./public/server.js"
+    "debug": "nodemon ./public/server.js"
   },
   "author": "",
   "license": "ISC",
