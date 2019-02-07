@@ -20,5 +20,5 @@ server.get(get_routes, function (req, res) {
 server.use(express_1.default.static('static'));
 server.use(api_1.default);
 server.listen(config_1.default.PORT, function () {
-    console.log("[+] Server is listening on port " + config_1.default.PORT + "...");
+    console.log("[+] Server is listening on port " + config_1.default.PORT + "..");
 });

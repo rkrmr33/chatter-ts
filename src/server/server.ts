@@ -21,5 +21,5 @@ server.use(express.static('static'));
 server.use(api);
 
 server.listen(config.PORT, () => {
-  console.log(`[+] Server is listening on port ${config.PORT}...`);
+  console.log(`[+] Server is listening on port ${config.PORT}..`);
 });
