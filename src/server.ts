@@ -1,7 +1,7 @@
 import express from 'express';
 
 import config from './config';
-import { routes } from './serverRender';
+import { serverRender, routes } from './serverRender';
 
 const get_routes = routes.map(r => r.path);
 
@@ -10,11 +10,13 @@ const server = express();
 server.set('view engine', 'ejs');
 
 server.get(get_routes, (req, res) => {
-  res.render('index', {
-    appTitle: 'Chatter',
-    initialMarkup: 'is this working' 
-  });
+  serverRender(req.originalUrl)
+    .then(({__INITIAL_MARKUP__, __INITIAL_DATA__}: any) => {
+      res.render('index', {__INITIAL_MARKUP__, __INITIAL_DATA__});
+    });
 });
+
+server.use(express.static('static'));
 
 server.listen(config.PORT, () => {
   console.log(`server is listening on port ${config.PORT}...`);

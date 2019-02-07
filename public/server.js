@@ -10,11 +10,13 @@ var get_routes = serverRender_1.routes.map(function (r) { return r.path; });
 var server = express_1.default();
 server.set('view engine', 'ejs');
 server.get(get_routes, function (req, res) {
-    res.render('index', {
-        appTitle: 'Chatter',
-        initialMarkup: 'is this working'
+    serverRender_1.serverRender(req.originalUrl)
+        .then(function (_a) {
+        var __INITIAL_MARKUP__ = _a.__INITIAL_MARKUP__, __INITIAL_DATA__ = _a.__INITIAL_DATA__;
+        res.render('index', { __INITIAL_MARKUP__: __INITIAL_MARKUP__, __INITIAL_DATA__: __INITIAL_DATA__ });
     });
 });
+server.use(express_1.default.static('static'));
 server.listen(config_1.default.PORT, function () {
     console.log("server is listening on port " + config_1.default.PORT + "...");
 });

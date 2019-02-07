@@ -1,5 +1,9 @@
+<script type="text/javascript">
+  window.__INITIAL_DATA__ = <%- JSON.stringify(__INITIAL_DATA__) -%>
+</script>
+
 <%- include('header') -%>
 
-<div id="root"><%- initialMarkup -%></div>
+<div id="root"><%- __INITIAL_MARKUP__ -%></div>
 
 <%- include('footer') -%>
