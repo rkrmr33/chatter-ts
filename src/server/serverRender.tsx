@@ -48,7 +48,7 @@ function fetchMainPageData() {
       });
     })
     .catch(err => {
-      console.error(`[-] Couldd not fetch /api/chats Error: ${err}`);
+      console.error(`[-] Could not fetch /api/chats Error: ${err}`);
     });  
 }
 
