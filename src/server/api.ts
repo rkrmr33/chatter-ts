@@ -38,7 +38,7 @@ router.get('/api/chats', (req, res) => {
 
       res.send(chats);
       res.end();
-    });
+    })
 });
 
 
