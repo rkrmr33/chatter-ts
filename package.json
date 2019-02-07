@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "A new take on the chatter app with ts and react",
   "main": "./public/server/server",
+  "engines": {
+    "node": "10.14.1",
+    "npm": "6.4.1"
+  },
   "scripts": {
     "start": "node ./public/server/server.js",
     "build:prod": "tsc && webpack",

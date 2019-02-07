@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
 import { matchPath } from 'react-router-dom';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 import App from '../client/App';
 import config from './config';
@@ -23,6 +23,16 @@ export const routes = [
   }
 ];
 
+function handleBadFetchStatus(response : AxiosResponse, requestPath : string, respondWith? : string ) {
+  if (response.status !== 200) {
+    console.error(`[-] Bad fetch request to: '${requestPath}'. the response was: ${response.statusText}`);
+    if (respondWith) 
+      console.error(`[-] ${respondWith}`);
+    return true;
+  }
+  return false;
+}
+
 // Server Render Function
 export function serverRender(path : string) {
   const match : any = routes.filter(route => matchPath(path, route))[0];
@@ -36,6 +46,9 @@ function fetchMainPageData() {
 
   return axios.get(`${config.endpoint}/api/chats`)
     .then(response => {
+      if(handleBadFetchStatus(response, `${config.endpoint}/api/chats`)) {
+        return null;
+      }
       const chats = response.data;
       const __INITIAL_DATA__: any = {
         display: 'main',

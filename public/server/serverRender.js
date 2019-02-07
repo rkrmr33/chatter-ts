@@ -35,6 +35,15 @@ exports.routes = [
         dataFetcher: fetchMainPageData
     }
 ];
+function handleBadFetchStatus(response, requestPath, respondWith) {
+    if (response.status !== 200) {
+        console.error("[-] Bad fetch request to: '" + requestPath + "'. the response was: " + response.statusText);
+        if (respondWith)
+            console.error("[-] " + respondWith);
+        return true;
+    }
+    return false;
+}
 // Server Render Function
 function serverRender(path) {
     var match = exports.routes.filter(function (route) { return react_router_dom_1.matchPath(path, route); })[0];
@@ -45,6 +54,9 @@ exports.serverRender = serverRender;
 function fetchMainPageData() {
     return axios_1.default.get(config_1.default.endpoint + "/api/chats")
         .then(function (response) {
+        if (handleBadFetchStatus(response, config_1.default.endpoint + "/api/chats")) {
+            return null;
+        }
         var chats = response.data;
         var __INITIAL_DATA__ = {
             display: 'main',
