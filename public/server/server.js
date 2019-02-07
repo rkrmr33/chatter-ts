@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
 var config_1 = __importDefault(require("./config"));
+var api_1 = __importDefault(require("./api"));
 var serverRender_1 = require("./serverRender");
 var get_routes = serverRender_1.routes.map(function (r) { return r.path; });
 var server = express_1.default();
@@ -17,6 +18,7 @@ server.get(get_routes, function (req, res) {
     });
 });
 server.use(express_1.default.static('static'));
+server.use(api_1.default);
 server.listen(config_1.default.PORT, function () {
-    console.log("server is listening on port " + config_1.default.PORT + "...");
+    console.log("[+] Server is listening on port " + config_1.default.PORT + "...");
 });

@@ -18,5 +18,4 @@ var react_1 = __importDefault(require("react"));
 var react_dom_1 = __importDefault(require("react-dom"));
 var App_1 = __importDefault(require("./App"));
 var global = window;
-console.log('hello');
 react_dom_1.default.hydrate(react_1.default.createElement(App_1.default, __assign({}, global.__INITIAL_DATA__)), document.getElementById('root'));

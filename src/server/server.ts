@@ -1,6 +1,7 @@
 import express from 'express';
 
 import config from './config';
+import api from './api';
 import { serverRender, routes } from './serverRender';
 
 const get_routes = routes.map(r => r.path);
@@ -17,7 +18,8 @@ server.get(get_routes, (req, res) => {
 });
 
 server.use(express.static('static'));
+server.use(api);
 
 server.listen(config.PORT, () => {
-  console.log(`server is listening on port ${config.PORT}...`);
+  console.log(`[+] Server is listening on port ${config.PORT}...`);
 });
