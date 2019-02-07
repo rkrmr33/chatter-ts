@@ -43,7 +43,7 @@ export function serverRender(path : string) {
 
 // route: '/'
 function fetchMainPageData() {
-
+  console.log(`requesting: ${config.endpoint}/api/chats`)
   return axios.get(`${config.endpoint}/api/chats`)
     .then(response => {
       if(handleBadFetchStatus(response, `${config.endpoint}/api/chats`)) {
