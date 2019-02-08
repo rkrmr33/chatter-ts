@@ -4,6 +4,9 @@ import React, { Component } from 'react';
 import Header from './Components/Header';
 import ChatList from './Components/ChatList';
 
+// utils file will be imported once the document has been defined
+let util : any;
+
 class App extends Component<IApp, IApp> {
 
   constructor(props: any) {
@@ -16,10 +19,16 @@ class App extends Component<IApp, IApp> {
 
   componentDidMount() {
     console.log(this.state);
+    util = require('./util');
   }
 
-  loadMain() {
-
+  loadMain = () : void => {
+    util.fetchAllChats()
+      .then((chats : any) => {
+        this.setState({
+          chatRooms: chats
+        });
+      })
   }
 
   loadChat(chatId : string) {

@@ -27,10 +27,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var react_1 = __importStar(require("react"));
 var Header_1 = __importDefault(require("./Components/Header"));
 var ChatList_1 = __importDefault(require("./Components/ChatList"));
+// utils file will be imported once the document has been defined
+var util;
 var App = /** @class */ (function (_super) {
     __extends(App, _super);
     function App(props) {
         var _this = _super.call(this, props) || this;
+        _this.loadMain = function () {
+            util.fetchAllChats()
+                .then(function (chats) {
+                _this.setState({
+                    chatRooms: chats
+                });
+            });
+        };
         _this.state = {
             display: props.display,
             chatRooms: props.chats
@@ -39,8 +49,7 @@ var App = /** @class */ (function (_super) {
     }
     App.prototype.componentDidMount = function () {
         console.log(this.state);
-    };
-    App.prototype.loadMain = function () {
+        util = require('./util');
     };
     App.prototype.loadChat = function (chatId) {
         console.log(chatId);

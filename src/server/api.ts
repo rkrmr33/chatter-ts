@@ -10,15 +10,19 @@ const router = express.Router();
 let mdb : mongodb.Db;
 
 // Connect to DB
-mongodb.MongoClient.connect(config.DB_CONN_STR, { useNewUrlParser: true})
-  .then(client => {
-    mdb = client.db(config.DB_NAME)
-    console.log('[+] Connected to db...');
-  })
-  .catch(err => 
-    console.log(`[-] Could not connect to remote db. Error: ${err}`
-  ));
+(function connectDB(){
+  mongodb.MongoClient.connect(config.DB_CONN_STR, { useNewUrlParser: true})
+    .then(client => {
+      mdb = client.db(config.DB_NAME)
+      console.log('[+] Connected to db...');
+    })
+    .catch(err => 
+      console.log(`[-] Could not connect to remote db. Error: ${err}`
+    ));
+})()
 
+
+// Fetch all the chats from the db
 router.get('/api/chats', (req, res) => {
   let chats : any = {};
   mdb.collection('chats').find({})

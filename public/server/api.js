@@ -10,14 +10,17 @@ var config_1 = __importDefault(require("./config"));
 var router = express_1.default.Router();
 var mdb;
 // Connect to DB
-mongodb_1.default.MongoClient.connect(config_1.default.DB_CONN_STR, { useNewUrlParser: true })
-    .then(function (client) {
-    mdb = client.db(config_1.default.DB_NAME);
-    console.log('[+] Connected to db...');
-})
-    .catch(function (err) {
-    return console.log("[-] Could not connect to remote db. Error: " + err);
-});
+(function connectDB() {
+    mongodb_1.default.MongoClient.connect(config_1.default.DB_CONN_STR, { useNewUrlParser: true })
+        .then(function (client) {
+        mdb = client.db(config_1.default.DB_NAME);
+        console.log('[+] Connected to db...');
+    })
+        .catch(function (err) {
+        return console.log("[-] Could not connect to remote db. Error: " + err);
+    });
+})();
+// Fetch all the chats from the db
 router.get('/api/chats', function (req, res) {
     var chats = {};
     mdb.collection('chats').find({})

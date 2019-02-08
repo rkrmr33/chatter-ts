@@ -9,6 +9,11 @@ body {
 	flex-flow: column;
 	height: 100%;
 }
+/* --- nprogress --- */
+#nprogress .bar {
+	background:  #be28d2 !important;
+}
+
 
 /* --- HEADER MENU CSS --- */
 
