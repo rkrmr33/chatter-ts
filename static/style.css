@@ -72,7 +72,6 @@ body {
 }
 
 #mainDiv .item{
-	height:;
 	vertical-align: middle;
 	padding-top: 0.4em;
 }
@@ -191,6 +190,10 @@ body {
 #messages-list .item:hover {
 	background-color: #e4e4e4;
 	box-shadow: 0px 2px 2px #d3d3d3;
+}
+
+#commentUser {
+	color: white;
 }
 
 /* --- REGISTRATION STYLING --- */

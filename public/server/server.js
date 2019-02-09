@@ -4,14 +4,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
+var body_parser_1 = __importDefault(require("body-parser"));
 var config_1 = __importDefault(require("./config"));
 var api_1 = __importDefault(require("./api"));
 var serverRender_1 = require("./serverRender");
-var get_routes = serverRender_1.routes.map(function (r) { return r.path; });
+var app_routes = serverRender_1.routes.map(function (r) { return r.path; });
 var server = express_1.default();
 server.set('view engine', 'ejs');
-server.get(get_routes, function (req, res) {
-    serverRender_1.serverRender(req.originalUrl)
+server.use(body_parser_1.default.json());
+server.get(app_routes, function (req, res) {
+    serverRender_1.serverRender(req)
         .then(function (_a) {
         var __INITIAL_MARKUP__ = _a.__INITIAL_MARKUP__, __INITIAL_DATA__ = _a.__INITIAL_DATA__;
         res.render('index', { __INITIAL_MARKUP__: __INITIAL_MARKUP__, __INITIAL_DATA__: __INITIAL_DATA__ });

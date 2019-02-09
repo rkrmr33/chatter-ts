@@ -1,8 +1,18 @@
-interface IApp {
-  display : string;
-  chatRooms? : IChat;
-  user? : IUser;
+declare enum Routes{
+  MAIN = 0,
+  CHAT_ROOM = 1,
+  SIGN_UP = 2,
+  LOG_IN = 3
 }
+
+interface IAppState {
+  display : Routes;
+  chatRooms? : any;
+  currentChat? : IChat | null;
+  user? : IUser | undefined;
+  messages? : Array<IMessage> | undefined;
+}
+
 
 interface IHeader {
   user? : IUser;
@@ -18,17 +28,27 @@ interface IChat {
   chatName : string;
   chatDescription : string;
   chatImage : string;
-  users : Array<string>;
+  users : Array<IUser>;
 }
 
 interface IUser {
-  _id : string;
-  firstName : string;
-  lastName : string;
-  email : string;
+  _id? : string;
+  firstName? : string;
+  lastName? : string;
+  email? : string;
   username : string;
-  password : string;
+  password? : string;
   specialColor : string;
+  avatar : string;
+}
+
+interface IMessage {
+  _id? : string;
+  chatId : string;
+  user : IUser;
+  body : string;
+  votes : Array<IUser>;
+  timestamp : string;
 }
 
 interface IChatList {
@@ -40,4 +60,18 @@ interface IChatPreview {
   key : string;
   onChatClick(chatId : string) : void;
   chat : IChat;
+}
+
+interface IChatRoomProps {
+  chat? : IChat | null;
+  user? : IUser;
+  users? : Array<IUser>;
+  messages? : Array<IMessage>;
+  goToLogin() : void;
+  goToSignup() : void;
+}
+
+interface IChatRoomState {
+  users? : Array<IUser>;
+  messages? : Array<IMessage>;
 }

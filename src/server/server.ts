@@ -1,17 +1,19 @@
 import express from 'express';
+import bodyParser from 'body-parser';
 
 import config from './config';
 import api from './api';
 import { serverRender, routes } from './serverRender';
 
-const get_routes = routes.map(r => r.path);
+const app_routes = routes.map(r => r.path);
 
 const server = express();
 
 server.set('view engine', 'ejs');
+server.use(bodyParser.json());
 
-server.get(get_routes, (req, res) => {
-  serverRender(req.originalUrl)
+server.get(app_routes, (req, res) => {
+  serverRender(req)
     .then(({__INITIAL_MARKUP__, __INITIAL_DATA__}: any) => {
       res.render('index', {__INITIAL_MARKUP__, __INITIAL_DATA__});
     });

@@ -28,3 +28,27 @@ function fetchAllChats() {
     });
 }
 exports.fetchAllChats = fetchAllChats;
+function fetchChatById(chatId) {
+    return axios_1.default.get("/api/chats/" + chatId)
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/chats/" + chatId, 'oops')) {
+            console.log(response.data);
+            return response.data;
+        }
+        console.log("[-] Could not fetch chat with Id: " + chatId + "...");
+        return null;
+    });
+}
+exports.fetchChatById = fetchChatById;
+function fetchChatAndMessagesById(chatId) {
+    return axios_1.default.get("/api/chats/full/id/" + chatId)
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/chats/full/" + chatId, 'oops')) {
+            console.log(response.data);
+            return response.data;
+        }
+        console.log("[-] Could not fetch chat and messages with Id: " + chatId + "...");
+        return null;
+    });
+}
+exports.fetchChatAndMessagesById = fetchChatAndMessagesById;
