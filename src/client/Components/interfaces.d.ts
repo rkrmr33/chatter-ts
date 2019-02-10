@@ -38,8 +38,8 @@ interface IUser {
   email? : string;
   username : string;
   password? : string;
-  specialColor : string;
-  avatar : string;
+  specialColor? : string;
+  avatar? : string;
 }
 
 interface IMessage {

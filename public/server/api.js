@@ -14,6 +14,7 @@ var assert_1 = __importDefault(require("assert"));
 var express_1 = __importDefault(require("express"));
 var mongodb_1 = __importStar(require("mongodb"));
 var config_1 = __importDefault(require("./config"));
+var axios_1 = __importDefault(require("axios"));
 var router = express_1.default.Router();
 var mdb;
 // Connect to DB
@@ -27,6 +28,36 @@ var mdb;
         return console.error("[-] Could not connect to remote db. Error: " + err);
     });
 })();
+// Fetch a random color for the user generation
+router.get('/api/color', function (req, res) {
+    return axios_1.default.get(config_1.default.RANDOM_COLOR_API)
+        .then(function (response) {
+        if (response.status === 200 && response.data.colors)
+            res.send(response.data.colors[0].hex);
+        else
+            res.send('fffff').status(response.status);
+    })
+        .catch(function (err) {
+        console.error("[-] Could not find color from " + config_1.default.RANDOM_COLOR_API + ". Error: " + err);
+    });
+});
+router.get('/api/avatar/:generator', function (req, res) {
+    if (req.params.generator) {
+        return axios_1.default.get(config_1.default.AVATAR_API_URL + req.params.generator)
+            .then(function (response) {
+            if (response.status === 200)
+                res.send(response.data);
+            else {
+                res.send('').status(response.status);
+                console.log(response.data);
+            }
+        })
+            .catch(function (err) {
+            console.error("[-] Could not fetch avatar frpm " + config_1.default.AVATAR_API_URL + ". Error: " + err);
+        });
+    }
+    res.send(null).status(404);
+});
 // Fetch all the chats from the db
 router.get('/api/chats', function (req, res) {
     var chats = {};
@@ -163,6 +194,23 @@ router.post('/api/messages/send', function (req, res) {
         .catch(function (err) {
         console.error("[-] Could not send message: " + JSON.stringify(message) + ".\nError:" + err);
         res.send(null).status(404);
+    });
+});
+// Inserts a new user to db
+router.post('/api/users/create', function (req, res) {
+    var user = req.body;
+    if (!user) {
+        res.send(null).status(400); // the request is invalid
+        return;
+    }
+    user.avatar = config_1.default.AVATAR_API_URL + user.email;
+    mdb.collection('users').insertOne(user)
+        .then(function (result) {
+        console.log(result);
+    })
+        .catch(function (err) {
+        console.error("[-] Could not register user: " + JSON.stringify(user) + ".\nError:" + err);
+        res.send(null).status(400);
     });
 });
 exports.default = router;

@@ -3,6 +3,8 @@ import express from 'express';
 import mongodb, { ObjectID, MongoError } from 'mongodb';
 
 import config from './config';
+import axios from 'axios';
+import { url } from 'inspector';
 
 const router = express.Router();
 
@@ -20,6 +22,37 @@ let mdb : mongodb.Db;
     ));
 })()
 
+// Fetch a random color for the user generation
+router.get('/api/color', (req : express.Request, res : express.Response) => {
+  return axios.get(config.RANDOM_COLOR_API)
+    .then(response => {
+      if(response.status === 200 && response.data.colors) 
+        res.send(response.data.colors[0].hex)
+      else
+        res.send('fffff').status(response.status);
+    })
+    .catch(err => {
+      console.error(`[-] Could not find color from ${config.RANDOM_COLOR_API}. Error: ${err}`);
+    });
+});
+
+router.get('/api/avatar/:generator', (req : express.Request, res : express.Response) => {
+  if (req.params.generator) {
+    return axios.get(config.AVATAR_API_URL + req.params.generator)
+      .then(response => {
+        if (response.status === 200) 
+          res.send(response.data);
+        else {
+          res.send('').status(response.status);
+          console.log(response.data);
+        }
+      })
+      .catch(err => {
+        console.error(`[-] Could not fetch avatar frpm ${config.AVATAR_API_URL}. Error: ${err}`);
+      });
+  }
+  res.send(null).status(404);
+});
 
 // Fetch all the chats from the db
 router.get('/api/chats', (req : express.Request, res) => {
@@ -158,7 +191,28 @@ router.post('/api/messages/send', (req : express.Request, res : any) => {
       console.error(`[-] Could not send message: ${JSON.stringify(message)}.\nError:${err}`);
       res.send(null).status(404);
     });
-})
+});
+
+// Inserts a new user to db
+router.post('/api/users/create', (req : express.Request, res : express.Response) => {
+  const user : IUser = req.body;
+  if (!user) {
+    res.send(null).status(400) // the request is invalid
+    return;
+  }
+
+  user.avatar = config.AVATAR_API_URL + user.email;
+  
+
+  mdb.collection('users').insertOne(user)
+    .then(result => {
+      console.log(result);
+    })
+    .catch(err => {
+      console.error(`[-] Could not register user: ${JSON.stringify(user)}.\nError:${err}`);
+      res.send(null).status(400);
+    })
+});
 
 
 export default router;
