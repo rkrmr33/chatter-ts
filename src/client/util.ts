@@ -66,3 +66,4 @@ export function createAccount(user:IUser) : AxiosPromise {
       return { created: false };
     })
 }
+

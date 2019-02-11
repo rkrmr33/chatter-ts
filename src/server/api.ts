@@ -4,7 +4,9 @@ import mongodb, { ObjectID, MongoError } from 'mongodb';
 import axios from 'axios';
 import { check, validationResult } from 'express-validator/check';
 import bcrypt from 'bcrypt';
-
+import jwt from 'jsonwebtoken';
+import passport from 'passport';
+import LocalStrategy from 'passport-local';
 import config from './config';
 
 
@@ -309,6 +311,40 @@ router.get('/api/users/check/:username', (req : express.Request, res : express.R
     });
 });
 
-router.post('/api/users/login', [])
+passport.use(new LocalStrategy.Strategy(
+  function(username, password, done) {
+    mdb.collection('users').findOne({ username })
+      .then(user => {
+        if (!user)
+          return done(null, false, { message: 'Incorrect username.' });
+        bcrypt.compare(password, user.password, (err, same) => {
+          if (err)
+            return done(err);
+          if (!same)
+            return done(null, false, { message: 'Incorrect password.' });
+          return done(null, user);
+        });
+      })
+      .catch(err => done(err));
+  }
+))
+
+passport.serializeUser(function(user, done) {
+  jwt.sign(user, config.SECRET_KEY, (err, token) => {
+    if (err) throw err;
+    done(null, token);
+  });
+});
+
+passport.deserializeUser(function(token, done) {
+  jwt.verify(token as string, config.SECRET_KEY, (err, user) => {
+    if (err) throw err;
+    done(null, user);
+  })
+});
+
+router.post('/api/users/login', passport.authenticate('local'), (req : express.Request, res : express.Response) => {
+  console.log(req.session);
+});
 
 export default router;

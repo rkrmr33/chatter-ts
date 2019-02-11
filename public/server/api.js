@@ -16,6 +16,9 @@ var mongodb_1 = __importStar(require("mongodb"));
 var axios_1 = __importDefault(require("axios"));
 var check_1 = require("express-validator/check");
 var bcrypt_1 = __importDefault(require("bcrypt"));
+var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+var passport_1 = __importDefault(require("passport"));
+var passport_local_1 = __importDefault(require("passport-local"));
 var config_1 = __importDefault(require("./config"));
 var router = express_1.default.Router();
 var mdb;
@@ -299,5 +302,36 @@ router.get('/api/users/check/:username', function (req, res) {
         res.send(null).status(404);
     });
 });
-router.post('/api/users/login', []);
+passport_1.default.use(new passport_local_1.default.Strategy(function (username, password, done) {
+    mdb.collection('users').findOne({ username: username })
+        .then(function (user) {
+        if (!user)
+            return done(null, false, { message: 'Incorrect username.' });
+        bcrypt_1.default.compare(password, user.password, function (err, same) {
+            if (err)
+                return done(err);
+            if (!same)
+                return done(null, false, { message: 'Incorrect password.' });
+            return done(null, user);
+        });
+    })
+        .catch(function (err) { return done(err); });
+}));
+passport_1.default.serializeUser(function (user, done) {
+    jsonwebtoken_1.default.sign(user, config_1.default.SECRET_KEY, function (err, token) {
+        if (err)
+            throw err;
+        done(null, token);
+    });
+});
+passport_1.default.deserializeUser(function (token, done) {
+    jsonwebtoken_1.default.verify(token, config_1.default.SECRET_KEY, function (err, user) {
+        if (err)
+            throw err;
+        done(null, user);
+    });
+});
+router.post('/api/users/login', passport_1.default.authenticate('local'), function (req, res) {
+    console.log(req.session);
+});
 exports.default = router;
