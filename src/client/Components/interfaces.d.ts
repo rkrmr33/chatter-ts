@@ -75,3 +75,41 @@ interface IChatRoomState {
   users? : Array<IUser>;
   messages? : Array<IMessage>;
 }
+
+interface ISignupProps {
+  login(user : IUser) : void;
+  goToLogin() : void;
+}
+
+interface ISignupState {
+  firstName : string;
+  lastName : string;
+  email : string;
+  username : string;
+  password1 : string;
+  password2 : string;
+  formErrors : IFormErrors;
+}
+
+interface IFormErrors {
+  firstName : string;
+  lastName : string;
+  email : string;
+  username : string;
+  password1 : string;
+  password2 : string;
+  [key:string]:string;
+}
+
+interface ILoginProps {
+  login(user : IUser) : void;
+  goToSignup() : void;
+}
+
+interface ILoginState {
+  errors: {
+    username:string,
+    password:string,
+    result:string
+  }
+}

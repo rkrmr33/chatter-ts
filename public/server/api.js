@@ -13,8 +13,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var assert_1 = __importDefault(require("assert"));
 var express_1 = __importDefault(require("express"));
 var mongodb_1 = __importStar(require("mongodb"));
-var config_1 = __importDefault(require("./config"));
 var axios_1 = __importDefault(require("axios"));
+var bcrypt_1 = __importDefault(require("bcrypt"));
+var config_1 = __importDefault(require("./config"));
 var router = express_1.default.Router();
 var mdb;
 // Connect to DB
@@ -204,13 +205,56 @@ router.post('/api/users/create', function (req, res) {
         return;
     }
     user.avatar = config_1.default.AVATAR_API_URL + user.email;
-    mdb.collection('users').insertOne(user)
+    bcrypt_1.default.hash(user.password, 10)
+        .then(function (hash) {
+        user.password = hash;
+        return axios_1.default.get(config_1.default.RANDOM_COLOR_API);
+    })
+        .catch(function (err) { throw err; })
+        .then(function (response) {
+        if (response.status === 200 && response.data.colors)
+            user.specialColor = response.data.colors[0].hex;
+        else
+            user.specialColor = '7b06ff';
+        return mdb.collection('users').insertOne(user);
+    })
+        .catch(function (err) {
+        console.error("[-] Could not find color from " + config_1.default.RANDOM_COLOR_API + ". Error: " + err);
+    })
         .then(function (result) {
-        console.log(result);
+        if (result.insertedCount === 1) {
+            res.send({
+                created: true,
+                user: result.ops[0]
+            }).status(200);
+        }
+        else {
+            console.error("[-] Could not register user: " + JSON.stringify(user) + ".");
+            res.send({ created: false }).status(400);
+        }
     })
         .catch(function (err) {
         console.error("[-] Could not register user: " + JSON.stringify(user) + ".\nError:" + err);
-        res.send(null).status(400);
+        res.send({ created: false }).status(400);
+    });
+});
+// Checks if username is taken, true if taken, false otherwise
+router.get('/api/users/check/:username', function (req, res) {
+    if (!req.params.username) {
+        res.send(false);
+        return;
+    }
+    var username = req.params.username;
+    mdb.collection('users').findOne({ username: username })
+        .then(function (result) {
+        if (!result)
+            res.send(false);
+        else
+            res.send(true);
+    })
+        .catch(function (err) {
+        console.error("[-] Could not search for username: " + JSON.stringify(username) + ".\nError:" + err);
+        res.send(null).status(404);
     });
 });
 exports.default = router;

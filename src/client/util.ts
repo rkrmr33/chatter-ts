@@ -44,10 +44,26 @@ export function fetchChatAndMessagesById(chatId : string) : AxiosPromise {
   return axios.get(`/api/chats/full/id/${chatId}`)
     .then(response => {
       if (!handleBadFetchStatus(response, `${serverUrl}/api/chats/full/${chatId}`, 'oops')) {
-        console.log(response.data);
         return response.data;
       }
-      console.log(`[-] Could not fetch chat and messages with Id: ${chatId}...`);
       return null;
+    })
+}
+
+export function checkUsernameTaken(username:string) : AxiosPromise {
+  return axios.get(`/api/users/check/${username}`)
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/users/check/${username}`, 'oops'))
+        return response.data;
+      return null;
+    });
+}
+
+export function createAccount(user:IUser) : AxiosPromise {
+  return axios.post('/api/users/create', user)
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/users/create/${user}`, 'oops'))
+        return response.data;
+      return { created: false };
     })
 }

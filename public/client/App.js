@@ -28,6 +28,8 @@ var react_1 = __importStar(require("react"));
 var Header_1 = __importDefault(require("./Components/Header"));
 var ChatList_1 = __importDefault(require("./Components/ChatList"));
 var ChatRoom_1 = __importDefault(require("./Components/ChatRoom"));
+var Signup_1 = __importDefault(require("./Components/Signup"));
+var Login_1 = __importDefault(require("./Components/Login"));
 // utils file will be imported once the document has been defined
 var util;
 var Routes;
@@ -65,6 +67,20 @@ var App = /** @class */ (function (_super) {
                 });
             });
         };
+        _this.loadLogin = function () {
+            _this.setState({
+                display: Routes.LOG_IN,
+            }, function () {
+                history.pushState(_this.state, 'Login', "/login");
+            });
+        };
+        _this.loadSignup = function () {
+            _this.setState({
+                display: Routes.SIGN_UP,
+            }, function () {
+                history.pushState(_this.state, 'Signup', "/create_account");
+            });
+        };
         _this.state = props;
         return _this;
     }
@@ -98,9 +114,8 @@ var App = /** @class */ (function (_super) {
             _this.setState(e.state);
         });
     };
-    App.prototype.loadLogin = function () {
-    };
-    App.prototype.loadSignup = function () {
+    App.prototype.login = function (user) {
+        console.log(user);
     };
     App.prototype.logout = function () {
     };
@@ -111,9 +126,9 @@ var App = /** @class */ (function (_super) {
             case Routes.CHAT_ROOM: // route: '/chat/[chatName]'
                 return (react_1.default.createElement(ChatRoom_1.default, { chat: this.state.currentChat, user: this.state.user, messages: this.state.messages, goToLogin: this.loadLogin, goToSignup: this.loadSignup }));
             case Routes.SIGN_UP: // route: '/create_account'
-                return;
+                return (react_1.default.createElement(Signup_1.default, { login: this.login, goToLogin: this.loadLogin }));
             case Routes.LOG_IN: // route: '/login'
-                return;
+                return (react_1.default.createElement(Login_1.default, { login: this.login, goToSignup: this.loadSignup }));
             default:
                 return "Something went wrong, the initial data is: " + JSON.stringify(this.props.__INITIAL_DATA__);
         }

@@ -44,11 +44,27 @@ function fetchChatAndMessagesById(chatId) {
     return axios_1.default.get("/api/chats/full/id/" + chatId)
         .then(function (response) {
         if (!handleBadFetchStatus(response, exports.serverUrl + "/api/chats/full/" + chatId, 'oops')) {
-            console.log(response.data);
             return response.data;
         }
-        console.log("[-] Could not fetch chat and messages with Id: " + chatId + "...");
         return null;
     });
 }
 exports.fetchChatAndMessagesById = fetchChatAndMessagesById;
+function checkUsernameTaken(username) {
+    return axios_1.default.get("/api/users/check/" + username)
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/check/" + username, 'oops'))
+            return response.data;
+        return null;
+    });
+}
+exports.checkUsernameTaken = checkUsernameTaken;
+function createAccount(user) {
+    return axios_1.default.post('/api/users/create', user)
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/create/" + user, 'oops'))
+            return response.data;
+        return { created: false };
+    });
+}
+exports.createAccount = createAccount;

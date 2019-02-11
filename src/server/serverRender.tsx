@@ -27,7 +27,13 @@ export const routes = [
     path: '/create_account',
     exact: true,
     strict: false,
-    dataFetcher: fetchMainPageData
+    dataFetcher: fetchSignupPage
+  },
+  {
+    path: '/login',
+    exact: true,
+    strict: false,
+    dataFetcher: fetchLoginPage
   }
 ];
 
@@ -72,13 +78,13 @@ function fetchMainPageData() {
     });  
 }
 
-// route: '/c/:chatName
+// route: '/c/:chatName'
 function fetchChatPageData(req : express.Request) {
   const chatName : string = req.params.chatName;
   const endpoint = `${config.endpoint}/api/chats/full/name/${chatName}`;
 
   console.log(`requesting: ${endpoint}`)
-  
+
   return axios.get(endpoint)
     .then(response => {
       if(handleBadFetchStatus(response, endpoint)) {
@@ -102,6 +108,27 @@ function fetchChatPageData(req : express.Request) {
     });  
 }
 
+// route '/create_account'
+async function fetchSignupPage(req : express.Request) {
+  const __INITIAL_DATA__ = defaultAppState;
+  __INITIAL_DATA__.display = Routes.SIGN_UP;
+
+  return ({
+    __INITIAL_MARKUP__: ReactDOMServer.renderToString(<App {...__INITIAL_DATA__} />),
+    __INITIAL_DATA__
+  });
+}
+
+// route '/login'
+async function fetchLoginPage(req : express.Request) {
+  const __INITIAL_DATA__ = defaultAppState;
+  __INITIAL_DATA__.display = Routes.LOG_IN;
+
+  return ({
+    __INITIAL_MARKUP__: ReactDOMServer.renderToString(<App {...__INITIAL_DATA__} />),
+    __INITIAL_DATA__
+  });
+}
 
 const defaultAppState : IAppState= {
   display: Routes.MAIN, // default to main in Routes.enum

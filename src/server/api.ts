@@ -1,10 +1,12 @@
 import assert from 'assert';
 import express from 'express';
 import mongodb, { ObjectID, MongoError } from 'mongodb';
+import axios from 'axios';
+import { check, validationResult } from 'express-validator/check';
+import bcrypt from 'bcrypt';
 
 import config from './config';
-import axios from 'axios';
-import { url } from 'inspector';
+
 
 const router = express.Router();
 
@@ -202,16 +204,62 @@ router.post('/api/users/create', (req : express.Request, res : express.Response)
   }
 
   user.avatar = config.AVATAR_API_URL + user.email;
-  
 
-  mdb.collection('users').insertOne(user)
-    .then(result => {
-      console.log(result);
+  bcrypt.hash(user.password, 10)
+    .then(hash => {
+      user.password = hash;
+      return axios.get(config.RANDOM_COLOR_API);
+    })
+    .catch(err => { throw err; })
+    .then(response => {
+      if(response.status === 200 && response.data.colors) 
+        user.specialColor = response.data.colors[0].hex;
+      else
+        user.specialColor = '7b06ff';
+
+      return mdb.collection('users').insertOne(user)
+    })
+    .catch(err => {
+      console.error(`[-] Could not find color from ${config.RANDOM_COLOR_API}. Error: ${err}`);
+    })
+    .then((result : any) => {
+      if(result.insertedCount === 1) {
+        res.send({
+          created: true,
+          user: result.ops[0]
+        }).status(200);
+      }
+      else {
+        console.error(`[-] Could not register user: ${JSON.stringify(user)}.`);
+        res.send({ created: false }).status(400);
+      }
     })
     .catch(err => {
       console.error(`[-] Could not register user: ${JSON.stringify(user)}.\nError:${err}`);
-      res.send(null).status(400);
+      res.send({ created: false }).status(400);
     })
+});
+
+// Checks if username is taken, true if taken, false otherwise
+router.get('/api/users/check/:username', (req : express.Request, res : express.Response) => {
+  if (!req.params.username) {
+    res.send(false);
+    return;
+  }
+
+  const username = req.params.username;
+
+  mdb.collection('users').findOne({username})
+    .then(result => {
+      if(!result)
+        res.send(false);
+      else
+        res.send(true);
+    })
+    .catch(err => {
+      console.error(`[-] Could not search for username: ${JSON.stringify(username)}.\nError:${err}`);
+      res.send(null).status(404);
+    });
 });
 
 

@@ -4,6 +4,8 @@ import React, { Component } from 'react';
 import Header from './Components/Header';
 import ChatList from './Components/ChatList';
 import ChatRoom from './Components/ChatRoom';
+import Signup from './Components/Signup';
+import Login from './Components/Login';
 
 
 // utils file will be imported once the document has been defined
@@ -84,12 +86,24 @@ class App extends Component<any, IAppState> {
       });
   }
 
-  loadLogin() {
-
+  loadLogin = () : void => {
+    this.setState({
+      display: Routes.LOG_IN,
+    }, () => {
+      history.pushState(this.state, 'Login', `/login`);
+    });
   }
 
-  loadSignup() {
+  loadSignup = () : void => {
+    this.setState({
+        display: Routes.SIGN_UP,
+      }, () => {
+        history.pushState(this.state, 'Signup', `/create_account`);
+      });
+  }
 
+  login(user:IUser) {
+    console.log(user);
   }
 
   logout() {
@@ -109,9 +123,15 @@ class App extends Component<any, IAppState> {
                   goToSignup={ this.loadSignup }
                   />)
       case Routes.SIGN_UP:       // route: '/create_account'
-        return;
+        return (<Signup 
+                  login={this.login}
+                  goToLogin={this.loadLogin}
+                  />)
       case Routes.LOG_IN:        // route: '/login'
-        return;
+        return (<Login 
+                  login={this.login}
+                  goToSignup={this.loadSignup}
+                  />)
       default:
         return `Something went wrong, the initial data is: ${JSON.stringify(this.props.__INITIAL_DATA__)}`;
     }
