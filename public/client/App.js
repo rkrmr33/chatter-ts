@@ -27,34 +27,110 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var react_1 = __importStar(require("react"));
 var Header_1 = __importDefault(require("./Components/Header"));
 var ChatList_1 = __importDefault(require("./Components/ChatList"));
+var ChatRoom_1 = __importDefault(require("./Components/ChatRoom"));
+var Signup_1 = __importDefault(require("./Components/Signup"));
+var Login_1 = __importDefault(require("./Components/Login"));
+// utils file will be imported once the document has been defined
+var util;
+var Routes;
+(function (Routes) {
+    Routes[Routes["MAIN"] = 0] = "MAIN";
+    Routes[Routes["CHAT_ROOM"] = 1] = "CHAT_ROOM";
+    Routes[Routes["SIGN_UP"] = 2] = "SIGN_UP";
+    Routes[Routes["LOG_IN"] = 3] = "LOG_IN";
+})(Routes = exports.Routes || (exports.Routes = {}));
 var App = /** @class */ (function (_super) {
     __extends(App, _super);
     function App(props) {
         var _this = _super.call(this, props) || this;
-        _this.state = {
-            display: props.display,
-            chatRooms: props.chats
+        _this.loadMain = function () {
+            util.fetchAllChats()
+                .then(function (chats) {
+                _this.setState({
+                    display: Routes.MAIN,
+                    chatRooms: chats
+                }, function () {
+                    // push a new state to the history object
+                    history.pushState(_this.state, 'Chatter', '/');
+                });
+            });
         };
+        _this.loadChat = function (chatId) {
+            util.fetchChatAndMessagesById(chatId)
+                .then(function (result) {
+                _this.setState({
+                    display: Routes.CHAT_ROOM,
+                    currentChat: result.currentChat,
+                    messages: result.messages
+                }, function () {
+                    history.pushState(_this.state, result.currentChat.chatName, "/c/" + result.currentChat.chatName);
+                });
+            });
+        };
+        _this.loadLogin = function () {
+            _this.setState({
+                display: Routes.LOG_IN,
+            }, function () {
+                history.pushState(_this.state, 'Login', "/login");
+            });
+        };
+        _this.loadSignup = function () {
+            _this.setState({
+                display: Routes.SIGN_UP,
+            }, function () {
+                history.pushState(_this.state, 'Signup', "/create_account");
+            });
+        };
+        _this.state = props;
         return _this;
     }
     App.prototype.componentDidMount = function () {
-        console.log(this.state);
+        var _this = this;
+        // Load utils and apply nProgress progress bar
+        util = require('./util');
+        // determain initial status and push it to the history state
+        switch (this.state.display) {
+            case Routes.MAIN:
+                history.replaceState(this.state, 'Chatter', "/");
+                break;
+            case Routes.CHAT_ROOM:
+                if (this.state.currentChat)
+                    history.replaceState(this.state, this.state.currentChat.chatName, "/c/" + this.state.currentChat.chatName);
+                break;
+            case Routes.SIGN_UP:
+                history.replaceState(this.state, 'Signup', '/create_account');
+                break;
+            case Routes.LOG_IN:
+                history.replaceState(this.state, 'Login', '/login');
+                break;
+            default:
+                console.log("[-] Something went wrong, the initial data is: " + this.props.__INITIAL_DATA__);
+                break;
+        }
+        // removes the unneeded initial data variable from the global object
+        delete window.__INITIAL_DATA__;
+        // handle popstate event
+        window.addEventListener('popstate', function (e) {
+            _this.setState(e.state);
+        });
     };
-    App.prototype.loadMain = function () {
-    };
-    App.prototype.loadChat = function (chatId) {
-        console.log(chatId);
-    };
-    App.prototype.loadLogin = function () {
-    };
-    App.prototype.loadSignup = function () {
+    App.prototype.login = function (user) {
+        console.log(user);
     };
     App.prototype.logout = function () {
     };
     App.prototype.contentSwitch = function () {
         switch (this.state.display) {
-            case 'main':
+            case Routes.MAIN: // route: '/'
                 return (react_1.default.createElement(ChatList_1.default, { onChatClick: this.loadChat, chatList: this.state.chatRooms }));
+            case Routes.CHAT_ROOM: // route: '/chat/[chatName]'
+                return (react_1.default.createElement(ChatRoom_1.default, { chat: this.state.currentChat, user: this.state.user, messages: this.state.messages, goToLogin: this.loadLogin, goToSignup: this.loadSignup }));
+            case Routes.SIGN_UP: // route: '/create_account'
+                return (react_1.default.createElement(Signup_1.default, { login: this.login, goToLogin: this.loadLogin }));
+            case Routes.LOG_IN: // route: '/login'
+                return (react_1.default.createElement(Login_1.default, { login: this.login, goToSignup: this.loadSignup }));
+            default:
+                return "Something went wrong, the initial data is: " + JSON.stringify(this.props.__INITIAL_DATA__);
         }
     };
     App.prototype.render = function () {
