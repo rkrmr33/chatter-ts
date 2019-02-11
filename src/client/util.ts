@@ -53,9 +53,8 @@ export function fetchChatAndMessagesById(chatId : string) : AxiosPromise {
 export function checkUsernameTaken(username:string) : AxiosPromise {
   return axios.get(`/api/users/check/${username}`)
     .then(response => {
-      if (!handleBadFetchStatus(response, `${serverUrl}/api/users/check/${username}`, 'oops'))
-        return response.data;
-      return null;
+      handleBadFetchStatus(response, `${serverUrl}/api/users/check/${username}`, 'oops')
+      return response.data;
     });
 }
 

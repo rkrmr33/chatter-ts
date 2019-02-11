@@ -53,9 +53,8 @@ exports.fetchChatAndMessagesById = fetchChatAndMessagesById;
 function checkUsernameTaken(username) {
     return axios_1.default.get("/api/users/check/" + username)
         .then(function (response) {
-        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/check/" + username, 'oops'))
-            return response.data;
-        return null;
+        handleBadFetchStatus(response, exports.serverUrl + "/api/users/check/" + username, 'oops');
+        return response.data;
     });
 }
 exports.checkUsernameTaken = checkUsernameTaken;

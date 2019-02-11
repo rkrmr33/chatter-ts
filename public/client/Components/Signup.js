@@ -29,15 +29,59 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var react_1 = __importDefault(require("react"));
 var nameRegex = RegExp('^(([A-za-z]+[\s]{1}[A-za-z]+)|([A-Za-z]+))$');
 var usernameRegex = RegExp('[a-zA-Z][a-zA-Z0-9_]{5,31}');
-var emailRegex = RegExp('[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$' +
-    '%&\'*+/=?^_\`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9' +
-    '-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?');
+var emailRegex = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
 var passwordRegex = RegExp('^(?=.*\\d)(?=.*[a-z])(?=.*[A-Za-z])([a-zA-Z0-9\%\!\#\^\&\@_]){8,30}$');
 var util;
 var Signup = /** @class */ (function (_super) {
     __extends(Signup, _super);
     function Signup(props) {
         var _this = _super.call(this, props) || this;
+        _this.handleSubmit = function (e) {
+            e.preventDefault();
+            if (_this.validate(_this.state)) {
+                var formElement_1 = document.getElementById('registerForm');
+                if (formElement_1)
+                    formElement_1.setAttribute('class', 'ui loading form');
+                else
+                    return;
+                var user = {
+                    firstName: _this.state.firstName,
+                    lastName: _this.state.lastName,
+                    email: _this.state.email,
+                    username: _this.state.username,
+                    password: _this.state.password1,
+                };
+                // Here we should check for any errors from the server-side-validation.
+                util.createAccount(user)
+                    .then(function (result) {
+                    // user was successfuly created, now login..
+                    if (result.created) {
+                        formElement_1.setAttribute('class', 'ui form success');
+                        _this.props.login(result.user);
+                    }
+                    // If there are server validation errors, display them
+                    else if (result.errors) {
+                        var errors_1 = result.errors;
+                        var formErrors_1 = _this.state.formErrors;
+                        Object.keys(errors_1).forEach(function (key) {
+                            formErrors_1[key] = errors_1[key].msg;
+                        });
+                        _this.setState({ formErrors: formErrors_1 }, function () {
+                            formElement_1.setAttribute('class', 'ui form error');
+                        });
+                    }
+                    // Another server error, check server log...
+                    else {
+                        formElement_1.setAttribute('class', 'ui form warning');
+                    }
+                });
+            }
+            else {
+                var formElement = document.getElementById('registerForm');
+                if (formElement)
+                    formElement.setAttribute('class', 'ui form error');
+            }
+        };
         _this.validate = function (_a) {
             var formErrors = _a.formErrors, rest = __rest(_a, ["formErrors"]);
             var valid = true;
@@ -105,48 +149,40 @@ var Signup = /** @class */ (function (_super) {
                 _a[name] = value,
                 _a));
         };
-        _this.handleSubmit = function (e) {
-            e.preventDefault();
-            if (_this.validate(_this.state)) {
-                var formElement_1 = document.getElementById('registerForm');
-                if (formElement_1)
-                    formElement_1.setAttribute('class', 'ui loading form');
-                else
-                    return;
-                var user = {
-                    firstName: _this.state.firstName,
-                    lastName: _this.state.lastName,
-                    email: _this.state.email,
-                    username: _this.state.username,
-                    password: _this.state.password1,
-                };
-                // Here we should check for any errors from the server-side-validation.
-                util.createAccount(user)
-                    .then(function (result) {
-                    if (result.created) {
-                        formElement_1.setAttribute('class', 'ui form success');
-                        _this.props.login(result.user);
+        _this.checkUsername = function (e) {
+            _this.handleChange(e);
+            var formElement = document.getElementById('registerForm');
+            var usernameFieldIcon = document.getElementById('usernameFieldIcon');
+            var usernameField = document.getElementsByName('username')[0];
+            var formErrors = _this.state.formErrors;
+            if (formErrors.username === '') {
+                util.checkUsernameTaken(e.target.value)
+                    .then(function (taken) {
+                    if (taken) {
+                        formErrors.username = 'This username is taken. Please choose another one.';
+                        _this.setState({ formErrors: formErrors });
+                        if (formElement && usernameField && usernameFieldIcon) {
+                            formElement.setAttribute('class', 'ui form error');
+                            usernameField.removeAttribute('class');
+                            usernameFieldIcon.setAttribute('class', 'x icon red icon');
+                        }
                     }
                     else {
-                        formElement_1.setAttribute('class', 'ui form warning');
+                        if (formElement && usernameField && usernameFieldIcon) {
+                            formElement.setAttribute('class', 'ui form');
+                            usernameField.setAttribute('class', 'success-field');
+                            usernameFieldIcon.setAttribute('class', 'check green icon');
+                        }
                     }
                 });
             }
             else {
-                var formElement = document.getElementById('registerForm');
-                if (formElement)
-                    formElement.setAttribute('class', 'ui form error');
-            }
-        };
-        _this.checkUsername = function (e) {
-            _this.handleChange(e);
-            var formErrors = _this.state.formErrors;
-            if (formErrors.username === '') {
-                util.checkUsernameTaken(e.target.value)
-                    .then(function (result) {
-                    formErrors.username = result ? 'This username is taken. Please choose another one.' : '';
-                    _this.setState({ formErrors: formErrors });
-                });
+                if (usernameFieldIcon) {
+                    usernameFieldIcon.removeAttribute('class');
+                }
+                if (usernameField) {
+                    usernameField.removeAttribute('class');
+                }
             }
         };
         _this.state = {
@@ -191,7 +227,8 @@ var Signup = /** @class */ (function (_super) {
                             react_1.default.createElement("input", { type: "email", placeholder: "joe@schmoe.com", name: "email", onChange: this.handleChange })),
                         react_1.default.createElement("div", { className: this.state.formErrors.username === '' ? 'required field' : 'required field error' },
                             react_1.default.createElement("label", null, "Username"),
-                            react_1.default.createElement("input", { type: "text", placeholder: "username", name: "username", onChange: this.checkUsername }))),
+                            react_1.default.createElement("input", { type: "text", placeholder: "username", name: "username", onChange: this.checkUsername }),
+                            react_1.default.createElement("i", { id: "usernameFieldIcon" }))),
                     react_1.default.createElement("div", { className: "required field" },
                         react_1.default.createElement("label", null, "Password"),
                         react_1.default.createElement("div", { className: "two fields" },

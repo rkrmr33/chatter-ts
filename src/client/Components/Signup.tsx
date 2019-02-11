@@ -1,12 +1,11 @@
 /// <reference path="./interfaces.d.ts" />
 import React from 'react';
+import { AxiosResponse } from 'axios';
 
 
 const nameRegex = RegExp('^(([A-za-z]+[\s]{1}[A-za-z]+)|([A-Za-z]+))$');
 const usernameRegex = RegExp('[a-zA-Z][a-zA-Z0-9_]{5,31}');
-const emailRegex = RegExp('[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$' + 
-                          '%&\'*+/=?^_\`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9' + 
-                          '-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?');
+const emailRegex = /^[-!#$%&'*+\/0-9=?A-Z^_a-z{|}~](\.?[-!#$%&'*+\/0-9=?A-Z^_a-z`{|}~])*@[a-zA-Z0-9](-*\.?[a-zA-Z0-9])*\.[a-zA-Z](-?[a-zA-Z0-9])+$/;
 const passwordRegex = RegExp('^(?=.*\\d)(?=.*[a-z])(?=.*[A-Za-z])([a-zA-Z0-9\%\!\#\^\&\@_]){8,30}$');
 
 let util : any;
@@ -37,6 +36,56 @@ export default class Signup extends React.Component<ISignupProps, ISignupState> 
     util = require('../util');
   }
   
+  handleSubmit = (e : any) => {
+    e.preventDefault();
+
+    if(this.validate(this.state as any)) {
+      const formElement = document.getElementById('registerForm');
+      if (formElement)
+        formElement.setAttribute('class', 'ui loading form');
+      else
+        return;
+
+      const user = {
+        firstName: this.state.firstName,
+        lastName: this.state.lastName,
+        email: this.state.email,
+        username: this.state.username,
+        password: this.state.password1,
+      } 
+      
+      // Here we should check for any errors from the server-side-validation.
+      util.createAccount(user)
+        .then((result : any)=> {
+          // user was successfuly created, now login..
+          if(result.created) {
+            formElement.setAttribute('class', 'ui form success');
+            this.props.login(result.user);
+          }
+          // If there are server validation errors, display them
+          else if (result.errors) { 
+            const errors = result.errors;
+            const formErrors = this.state.formErrors;
+            Object.keys(errors).forEach(key => {
+              formErrors[key] = errors[key].msg;
+            });
+            this.setState({formErrors}, () => {
+              formElement.setAttribute('class', 'ui form error');
+            });
+          }
+          // Another server error, check server log...
+          else {
+            formElement.setAttribute('class', 'ui form warning');
+          }
+        });
+    }
+    else{
+      const formElement = document.getElementById('registerForm');
+      if (formElement)
+        formElement.setAttribute('class', 'ui form error');
+    }
+  }
+
   validate = ({formErrors, ...rest} : {formErrors:any, [key:string]:string}) : boolean => {
 		let valid = true;
 	
@@ -116,54 +165,39 @@ export default class Signup extends React.Component<ISignupProps, ISignupState> 
 
   }
   
-  handleSubmit = (e : any) => {
-		e.preventDefault();
-
-		if(this.validate(this.state as any)) {
-      const formElement = document.getElementById('registerForm');
-      if (formElement)
-        formElement.setAttribute('class', 'ui loading form');
-      else
-        return;
-
-			const user = {
-				firstName: this.state.firstName,
-				lastName: this.state.lastName,
-				email: this.state.email,
-				username: this.state.username,
-				password: this.state.password1,
-      } 
-      
-      // Here we should check for any errors from the server-side-validation.
-      util.createAccount(user)
-        .then((result:any) => {
-          if(result.created) {
-            formElement.setAttribute('class', 'ui form success');
-            this.props.login(result.user);
-          }
-          else {
-            formElement.setAttribute('class', 'ui form warning');
-          }
-        });
-		}
-		else{
-      const formElement = document.getElementById('registerForm');
-      if (formElement)
-			  formElement.setAttribute('class', 'ui form error');
-		}
-  }
   
   checkUsername = (e : React.ChangeEvent<HTMLInputElement>) => {
 		this.handleChange(e);
 
+    const formElement = document.getElementById('registerForm');
+    const usernameFieldIcon = document.getElementById('usernameFieldIcon');
+    const usernameField = document.getElementsByName('username')[0];
 		const formErrors = this.state.formErrors;
 		if (formErrors.username === '') {
       util.checkUsernameTaken(e.target.value)
-        .then((result : any) => {
-          formErrors.username = result ? 'This username is taken. Please choose another one.' : '';
-          this.setState({formErrors});
+        .then((taken : boolean) => {
+          if (taken) {
+            formErrors.username = 'This username is taken. Please choose another one.';
+            this.setState({formErrors});
+            if (formElement && usernameField && usernameFieldIcon) {
+              formElement.setAttribute('class', 'ui form error');
+              usernameField.removeAttribute('class');
+              usernameFieldIcon.setAttribute('class', 'x icon red icon')
+            }
+          }
+          else {
+            if (formElement && usernameField && usernameFieldIcon) {
+              formElement.setAttribute('class', 'ui form');
+              usernameField.setAttribute('class', 'success-field');
+              usernameFieldIcon.setAttribute('class', 'check green icon');
+            }
+          }
         });
-		}
+    }
+    else {
+      if(usernameFieldIcon) { usernameFieldIcon.removeAttribute('class') }
+      if(usernameField) { usernameField.removeAttribute('class') }
+    }
 	}
   
   render() {
@@ -191,6 +225,7 @@ export default class Signup extends React.Component<ISignupProps, ISignupState> 
 							<div className={ this.state.formErrors.username === '' ? 'required field' : 'required field error'}>
 								<label>Username</label>
 								<input type="text" placeholder="username" name="username" onChange={this.checkUsername} />
+                <i id="usernameFieldIcon"></i>
 							</div>
 						</div>
 						<div className="required field">

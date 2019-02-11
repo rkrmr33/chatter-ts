@@ -196,48 +196,95 @@ router.post('/api/messages/send', (req : express.Request, res : any) => {
 });
 
 // Inserts a new user to db
-router.post('/api/users/create', (req : express.Request, res : express.Response) => {
+router.post('/api/users/create', 
+// server-side validation with express-validator
+[
+  //first name
+  check('firstName').isLength({ min:2, max:25 }).isAlpha()
+  .withMessage('first-name must between 2-25 characters, with no numbers'),
+  //last name
+  check('lastName').isLength({ min:2, max:25 }).isAlpha()
+  .withMessage('last-name must between 2-25 characters, with no numbers'),
+  //username
+  check('username').isAscii().matches('[a-zA-Z][a-zA-Z0-9_]{5,31}')
+  .withMessage('username must be between 6-31 characters long, and can only contain letters, numbers and \'_\''),
+  //email
+  check('email').isEmail()
+  .withMessage('invalid email address'),
+  //password
+  check('password').isLength({ min:8, max:100 })
+  .withMessage('password must be atleast 8 characters long and contain letters and numbers')
+  .matches('^(?=.*\\d)(?=.*[a-z])(?=.*[A-Za-z])([a-zA-Z0-9\%\!\#\^\&\@_]){8,30}$')
+  .withMessage('password must be atleast 8 characters long and contain letters and numbers')
+  ],
+ (req : express.Request, res : express.Response) => {
+  
   const user : IUser = req.body;
+
+  // checks if the request has a user object
   if (!user) {
-    res.send(null).status(400) // the request is invalid
+    // the request is invalid
+    res.send({ created: false }).status(400)
     return;
   }
 
+  // checking server-side validation results
+  const userDataValidation = validationResult(req);
+  if (!userDataValidation.isEmpty()) {
+    // the user tried to pass the client side validation but got caught
+    res.send({ created: false, errors: userDataValidation.mapped() }).status(400);
+    return;
+  }
+
+  // assigning an avatar img url using the avatar api 
   user.avatar = config.AVATAR_API_URL + user.email;
 
+  // generating a password hash
   bcrypt.hash(user.password, 10)
     .then(hash => {
       user.password = hash;
       return axios.get(config.RANDOM_COLOR_API);
     })
-    .catch(err => { throw err; })
+    .catch(err => { 
+      console.error(`[-] Could not generate password from ${user.password}. Error: ${err}`);
+      res.send({ created: false }).status(500);
+      throw err;
+    })
+
+    // fetching a random hex color from the random color api
     .then(response => {
-      if(response.status === 200 && response.data.colors) 
+      if(response.status === 200 && response.data.colors) // worked
         user.specialColor = response.data.colors[0].hex;
-      else
+      else  // if has'nt worked, go to default color
         user.specialColor = '7b06ff';
 
       return mdb.collection('users').insertOne(user)
     })
     .catch(err => {
-      console.error(`[-] Could not find color from ${config.RANDOM_COLOR_API}. Error: ${err}`);
+      console.error(`[-] Could not fetch color from ${config.RANDOM_COLOR_API}. Error: ${err}`);
+      res.send({ created: false }).status(500);
+      throw err;
     })
-    .then((result : any) => {
-      if(result.insertedCount === 1) {
+
+    // finally inserting the user into the DB
+    .then(result => {
+      // The user has been successfuly created
+      if(result.insertedCount === 1) { 
         res.send({
           created: true,
           user: result.ops[0]
         }).status(200);
       }
+      // Could not insert user into the DB
       else {
-        console.error(`[-] Could not register user: ${JSON.stringify(user)}.`);
+        console.error(`[-] Could not insert user: ${JSON.stringify(user)}.`);
         res.send({ created: false }).status(400);
       }
     })
     .catch(err => {
-      console.error(`[-] Could not register user: ${JSON.stringify(user)}.\nError:${err}`);
+      console.error(`[-] Could not insert user: ${JSON.stringify(user)}.\nError:${err}`);
       res.send({ created: false }).status(400);
-    })
+    });
 });
 
 // Checks if username is taken, true if taken, false otherwise
@@ -262,5 +309,6 @@ router.get('/api/users/check/:username', (req : express.Request, res : express.R
     });
 });
 
+router.post('/api/users/login', [])
 
 export default router;
