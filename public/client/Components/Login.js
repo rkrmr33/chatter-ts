@@ -54,6 +54,20 @@ var Login = /** @class */ (function (_super) {
             // if all is valid attempt password & username validation against the server
             if (valid && formElement) {
                 formElement.setAttribute('class', 'ui loading form');
+                _this.props.login({ username: username.value, password: password.value })
+                    .then(function (result) {
+                    // if login failed, display errors
+                    if (result && result.success === false) {
+                        errors.result = result.error;
+                        _this.setState({ errors: errors }, function () {
+                            formElement.setAttribute('class', 'ui form error');
+                        });
+                    }
+                    if (result && result.success === true) {
+                        console.log(result.userToken);
+                        _this.props.goToChatter();
+                    }
+                });
             }
             else if (formElement) {
                 formElement.setAttribute('class', 'ui form error');

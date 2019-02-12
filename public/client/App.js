@@ -81,6 +81,39 @@ var App = /** @class */ (function (_super) {
                 history.pushState(_this.state, 'Signup', "/create_account");
             });
         };
+        _this.login = function (credentials) {
+            return util.login(credentials)
+                .then(function (result) {
+                if (result.success) {
+                    _this.setState({ user: result.user }, function () { return _this.loadMain(); });
+                }
+                return result;
+            });
+        };
+        _this.logout = function () {
+            util.logout()
+                .then(function (result) {
+                if (result) {
+                    console.log('user was logged out');
+                    _this.setState({ user: undefined }, function () {
+                        history.replaceState(_this.state, '');
+                    });
+                }
+                else {
+                    console.log('tried to logout with-out user token');
+                }
+            });
+        };
+        _this.relogin = function () {
+            util.relogin()
+                .then(function (user) {
+                if (!user)
+                    return;
+                _this.setState({ user: user }, function () {
+                    history.replaceState(_this.state, '');
+                });
+            });
+        };
         _this.state = props;
         return _this;
     }
@@ -88,6 +121,8 @@ var App = /** @class */ (function (_super) {
         var _this = this;
         // Load utils and apply nProgress progress bar
         util = require('./util');
+        // try to re-login user using the session token
+        this.relogin();
         // determain initial status and push it to the history state
         switch (this.state.display) {
             case Routes.MAIN:
@@ -114,11 +149,6 @@ var App = /** @class */ (function (_super) {
             _this.setState(e.state);
         });
     };
-    App.prototype.login = function (user) {
-        console.log(user);
-    };
-    App.prototype.logout = function () {
-    };
     App.prototype.contentSwitch = function () {
         switch (this.state.display) {
             case Routes.MAIN: // route: '/'
@@ -126,9 +156,9 @@ var App = /** @class */ (function (_super) {
             case Routes.CHAT_ROOM: // route: '/chat/[chatName]'
                 return (react_1.default.createElement(ChatRoom_1.default, { chat: this.state.currentChat, user: this.state.user, messages: this.state.messages, goToLogin: this.loadLogin, goToSignup: this.loadSignup }));
             case Routes.SIGN_UP: // route: '/create_account'
-                return (react_1.default.createElement(Signup_1.default, { login: this.login, goToLogin: this.loadLogin }));
+                return (react_1.default.createElement(Signup_1.default, { login: this.login, goToLogin: this.loadLogin, goToChatter: this.loadMain }));
             case Routes.LOG_IN: // route: '/login'
-                return (react_1.default.createElement(Login_1.default, { login: this.login, goToSignup: this.loadSignup }));
+                return (react_1.default.createElement(Login_1.default, { login: this.login, goToSignup: this.loadSignup, goToChatter: this.loadMain }));
             default:
                 return "Something went wrong, the initial data is: " + JSON.stringify(this.props.__INITIAL_DATA__);
         }

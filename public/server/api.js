@@ -17,8 +17,6 @@ var axios_1 = __importDefault(require("axios"));
 var check_1 = require("express-validator/check");
 var bcrypt_1 = __importDefault(require("bcrypt"));
 var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-var passport_1 = __importDefault(require("passport"));
-var passport_local_1 = __importDefault(require("passport-local"));
 var config_1 = __importDefault(require("./config"));
 var router = express_1.default.Router();
 var mdb;
@@ -45,23 +43,6 @@ router.get('/api/color', function (req, res) {
         .catch(function (err) {
         console.error("[-] Could not find color from " + config_1.default.RANDOM_COLOR_API + ". Error: " + err);
     });
-});
-router.get('/api/avatar/:generator', function (req, res) {
-    if (req.params.generator) {
-        return axios_1.default.get(config_1.default.AVATAR_API_URL + req.params.generator)
-            .then(function (response) {
-            if (response.status === 200)
-                res.send(response.data);
-            else {
-                res.send('').status(response.status);
-                console.log(response.data);
-            }
-        })
-            .catch(function (err) {
-            console.error("[-] Could not fetch avatar frpm " + config_1.default.AVATAR_API_URL + ". Error: " + err);
-        });
-    }
-    res.send(null).status(404);
 });
 // Fetch all the chats from the db
 router.get('/api/chats', function (req, res) {
@@ -239,9 +220,22 @@ router.post('/api/users/create',
     }
     // assigning an avatar img url using the avatar api 
     user.avatar = config_1.default.AVATAR_API_URL + user.email;
-    // generating a password hash
-    bcrypt_1.default.hash(user.password, 10)
+    mdb.collection('users').findOne({ username: user.username })
+        .then(function (foundUser) {
+        if (foundUser) {
+            res.send({ created: false, errors: { username: { msg: 'username already exists' } } }).status(400);
+            return null;
+        }
+        return bcrypt_1.default.hash(user.password, 10);
+    })
+        .catch(function (err) {
+        console.error("[-] Could not search for username: " + JSON.stringify(user.username) + ".\nError:" + err);
+        res.send(null).status(404);
+    })
+        // generating a password hash
         .then(function (hash) {
+        if (!hash)
+            return;
         user.password = hash;
         return axios_1.default.get(config_1.default.RANDOM_COLOR_API);
     })
@@ -252,6 +246,8 @@ router.post('/api/users/create',
     })
         // fetching a random hex color from the random color api
         .then(function (response) {
+        if (!response)
+            return;
         if (response.status === 200 && response.data.colors) // worked
             user.specialColor = response.data.colors[0].hex;
         else // if has'nt worked, go to default color
@@ -265,6 +261,8 @@ router.post('/api/users/create',
     })
         // finally inserting the user into the DB
         .then(function (result) {
+        if (!result)
+            return;
         // The user has been successfuly created
         if (result.insertedCount === 1) {
             res.send({
@@ -302,36 +300,66 @@ router.get('/api/users/check/:username', function (req, res) {
         res.send(null).status(404);
     });
 });
-passport_1.default.use(new passport_local_1.default.Strategy(function (username, password, done) {
+// handles user login
+router.post('/api/users/login', function (req, res) {
+    var username = req.body.username;
+    var password = req.body.password;
+    if (!username || !password) {
+        // wrong request
+        res.sendStatus(500).send({ error: 'request invalid.' }).sendStatus(401);
+    }
     mdb.collection('users').findOne({ username: username })
         .then(function (user) {
-        if (!user)
-            return done(null, false, { message: 'Incorrect username.' });
+        if (!user) {
+            // username is not registered
+            res.send({ success: false, error: 'username does not exist' });
+            return;
+        }
+        // checking if the password matches the hash in the db
         bcrypt_1.default.compare(password, user.password, function (err, same) {
-            if (err)
-                return done(err);
-            if (!same)
-                return done(null, false, { message: 'Incorrect password.' });
-            return done(null, user);
+            if (err) {
+                // encryption error
+                res.sendStatus(500).send({ success: false, error: 'encryption error' });
+            }
+            // password does not match hash
+            if (!same) {
+                res.send({ success: false, error: 'Incorrect password.' });
+                return;
+            }
+            // all is good, sending user object
+            jsonwebtoken_1.default.sign(user, config_1.default.SECRET_KEY, function (err, userToken) {
+                if (err)
+                    throw err;
+                if (req.session) {
+                    req.session.userToken = userToken;
+                }
+                res.send({ success: true, user: user });
+            });
         });
     })
-        .catch(function (err) { return done(err); });
-}));
-passport_1.default.serializeUser(function (user, done) {
-    jsonwebtoken_1.default.sign(user, config_1.default.SECRET_KEY, function (err, token) {
+        .catch(function (err) { throw err; });
+});
+router.get('/api/users/logout', function (req, res) {
+    if (!req.session || !req.session.userToken) {
+        res.send(false);
+        return;
+    }
+    req.session.destroy(function (err) {
         if (err)
             throw err;
-        done(null, token);
+        res.send(true);
     });
 });
-passport_1.default.deserializeUser(function (token, done) {
-    jsonwebtoken_1.default.verify(token, config_1.default.SECRET_KEY, function (err, user) {
-        if (err)
-            throw err;
-        done(null, user);
-    });
-});
-router.post('/api/users/login', passport_1.default.authenticate('local'), function (req, res) {
-    console.log(req.session);
+router.get('/api/users/current_user', function (req, res) {
+    if (!req.session || !req.session.userToken) {
+        res.send(false);
+    }
+    else {
+        jsonwebtoken_1.default.verify(req.session.userToken, config_1.default.SECRET_KEY, function (err, user) {
+            if (err)
+                throw err;
+            res.send(user);
+        });
+    }
 });
 exports.default = router;

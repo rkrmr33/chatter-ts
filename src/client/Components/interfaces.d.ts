@@ -77,8 +77,9 @@ interface IChatRoomState {
 }
 
 interface ISignupProps {
-  login(user : IUser) : void;
+  login(credentials:any) : any;
   goToLogin() : void;
+  goToChatter() : void;
 }
 
 interface ISignupState {
@@ -102,8 +103,9 @@ interface IFormErrors {
 }
 
 interface ILoginProps {
-  login(user : IUser) : void;
+  login(credentials:any) : any;
   goToSignup() : void;
+  goToChatter() : void;
 }
 
 interface ILoginState {

@@ -67,3 +67,31 @@ function createAccount(user) {
     });
 }
 exports.createAccount = createAccount;
+function login(_a) {
+    var username = _a.username, password = _a.password;
+    return axios_1.default.post('/api/users/login', { username: username, password: password })
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/login/" + username + "," + password, 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.login = login;
+function relogin() {
+    return axios_1.default.get('/api/users/current_user')
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/current_user", 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.relogin = relogin;
+function logout() {
+    return axios_1.default.get('/api/users/logout')
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/logout/", 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.logout = logout;

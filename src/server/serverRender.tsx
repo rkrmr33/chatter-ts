@@ -57,7 +57,6 @@ export function serverRender(req : express.Request) {
 
 // route: '/'
 function fetchMainPageData() {
-  console.log(`requesting: ${config.endpoint}/api/chats`)
   return axios.get(`${config.endpoint}/api/chats`)
     .then(response => {
       if(handleBadFetchStatus(response, `${config.endpoint}/api/chats`)) {
@@ -82,8 +81,6 @@ function fetchMainPageData() {
 function fetchChatPageData(req : express.Request) {
   const chatName : string = req.params.chatName;
   const endpoint = `${config.endpoint}/api/chats/full/name/${chatName}`;
-
-  console.log(`requesting: ${endpoint}`)
 
   return axios.get(endpoint)
     .then(response => {

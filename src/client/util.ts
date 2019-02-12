@@ -67,3 +67,30 @@ export function createAccount(user:IUser) : AxiosPromise {
     })
 }
 
+export function login({username, password} : {username: string, password: string}) : AxiosPromise {
+  return axios.post('/api/users/login', {username, password})
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/users/login/${username},${password}`, 'oops'))
+        return response.data;
+      return response.statusText;
+    })
+}
+
+export function relogin() : AxiosPromise {
+  return axios.get('/api/users/current_user')
+  .then(response => {
+    if (!handleBadFetchStatus(response, `${serverUrl}/api/users/current_user`, 'oops'))
+      return response.data;
+    return response.statusText;
+  })
+}
+
+export function logout() : AxiosPromise {
+  return axios.get('/api/users/logout')
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/users/logout/`, 'oops'))
+      return response.data;
+      return response.statusText;
+    })
+} 
+

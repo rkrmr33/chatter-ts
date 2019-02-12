@@ -5,9 +5,8 @@ import axios from 'axios';
 import { check, validationResult } from 'express-validator/check';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import passport from 'passport';
-import LocalStrategy from 'passport-local';
 import config from './config';
+import { Session } from 'inspector';
 
 
 const router = express.Router();
@@ -38,24 +37,6 @@ router.get('/api/color', (req : express.Request, res : express.Response) => {
     .catch(err => {
       console.error(`[-] Could not find color from ${config.RANDOM_COLOR_API}. Error: ${err}`);
     });
-});
-
-router.get('/api/avatar/:generator', (req : express.Request, res : express.Response) => {
-  if (req.params.generator) {
-    return axios.get(config.AVATAR_API_URL + req.params.generator)
-      .then(response => {
-        if (response.status === 200) 
-          res.send(response.data);
-        else {
-          res.send('').status(response.status);
-          console.log(response.data);
-        }
-      })
-      .catch(err => {
-        console.error(`[-] Could not fetch avatar frpm ${config.AVATAR_API_URL}. Error: ${err}`);
-      });
-  }
-  res.send(null).status(404);
 });
 
 // Fetch all the chats from the db
@@ -241,20 +222,34 @@ router.post('/api/users/create',
   // assigning an avatar img url using the avatar api 
   user.avatar = config.AVATAR_API_URL + user.email;
 
+  mdb.collection('users').findOne({ username: user.username })
+    .then((foundUser : any) : any=> {
+      if(foundUser) {
+        res.send({ created: false, errors: { username: { msg: 'username already exists'}} }).status(400);
+        return null;
+      }
+      return bcrypt.hash(user.password, 10);
+    })
+    .catch((err : any) => {
+      console.error(`[-] Could not search for username: ${JSON.stringify(user.username)}.\nError:${err}`);
+      res.send(null).status(404);
+    })
+
   // generating a password hash
-  bcrypt.hash(user.password, 10)
-    .then(hash => {
-      user.password = hash;
+    .then((hash : any) : any => {
+      if (!hash) return;
+      (user as any).password = hash;
       return axios.get(config.RANDOM_COLOR_API);
     })
-    .catch(err => { 
+    .catch((err : any) => { 
       console.error(`[-] Could not generate password from ${user.password}. Error: ${err}`);
       res.send({ created: false }).status(500);
       throw err;
     })
 
     // fetching a random hex color from the random color api
-    .then(response => {
+    .then((response : any) : any => {
+      if (!response) return;
       if(response.status === 200 && response.data.colors) // worked
         user.specialColor = response.data.colors[0].hex;
       else  // if has'nt worked, go to default color
@@ -262,14 +257,15 @@ router.post('/api/users/create',
 
       return mdb.collection('users').insertOne(user)
     })
-    .catch(err => {
+    .catch((err : any)=> {
       console.error(`[-] Could not fetch color from ${config.RANDOM_COLOR_API}. Error: ${err}`);
       res.send({ created: false }).status(500);
       throw err;
     })
 
     // finally inserting the user into the DB
-    .then(result => {
+    .then((result : any) : any => {
+      if(!result) return;
       // The user has been successfuly created
       if(result.insertedCount === 1) { 
         res.send({
@@ -283,7 +279,7 @@ router.post('/api/users/create',
         res.send({ created: false }).status(400);
       }
     })
-    .catch(err => {
+    .catch((err : any)=> {
       console.error(`[-] Could not insert user: ${JSON.stringify(user)}.\nError:${err}`);
       res.send({ created: false }).status(400);
     });
@@ -311,40 +307,74 @@ router.get('/api/users/check/:username', (req : express.Request, res : express.R
     });
 });
 
-passport.use(new LocalStrategy.Strategy(
-  function(username, password, done) {
-    mdb.collection('users').findOne({ username })
-      .then(user => {
-        if (!user)
-          return done(null, false, { message: 'Incorrect username.' });
-        bcrypt.compare(password, user.password, (err, same) => {
-          if (err)
-            return done(err);
-          if (!same)
-            return done(null, false, { message: 'Incorrect password.' });
-          return done(null, user);
-        });
-      })
-      .catch(err => done(err));
+// handles user login
+router.post('/api/users/login', (req : express.Request, res : express.Response) => {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  if (!username || !password) {
+    // wrong request
+    res.sendStatus(500).send({error: 'request invalid.'}).sendStatus(401);
   }
-))
 
-passport.serializeUser(function(user, done) {
-  jwt.sign(user, config.SECRET_KEY, (err, token) => {
-    if (err) throw err;
-    done(null, token);
-  });
+  mdb.collection('users').findOne({ username })
+    .then(user => {
+      if (!user) {
+        // username is not registered
+        res.send({success: false, error: 'username does not exist'});
+        return;
+      }
+
+      // checking if the password matches the hash in the db
+      bcrypt.compare(password, user.password, (err, same) => {
+        if (err) {
+          // encryption error
+          res.sendStatus(500).send({success: false, error: 'encryption error'});
+        }
+
+        // password does not match hash
+        if (!same) {
+          res.send({success: false, error: 'Incorrect password.'});
+          return;
+        }
+
+        // all is good, sending user object
+        jwt.sign(user, config.SECRET_KEY, (err : any, userToken : string) => {
+          if (err) throw err;
+          if (req.session) {
+            req.session.userToken = userToken;
+          }
+          res.send({success: true, user})
+        })
+      });
+
+    })
+    .catch(err => { throw err });
 });
 
-passport.deserializeUser(function(token, done) {
-  jwt.verify(token as string, config.SECRET_KEY, (err, user) => {
+
+router.get('/api/users/logout', (req : express.Request, res : express.Response) => {
+  if (!req.session || !req.session.userToken) {
+    res.send(false);
+    return;
+  }
+
+  req.session.destroy(err => {
     if (err) throw err;
-    done(null, user);
+    res.send(true);
   })
+    
 });
 
-router.post('/api/users/login', passport.authenticate('local'), (req : express.Request, res : express.Response) => {
-  console.log(req.session);
+router.get('/api/users/current_user', (req : express.Request, res : express.Response) => {
+  if (!req.session || !req.session.userToken) {
+    res.send(false);
+  }
+  else {
+    jwt.verify(req.session.userToken, config.SECRET_KEY, (err : any, user : any) => {
+      if (err) throw err;
+      res.send(user);
+    })
+  }
 });
-
 export default router;
