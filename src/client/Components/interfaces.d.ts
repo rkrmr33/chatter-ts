@@ -74,6 +74,7 @@ interface IChatRoomProps {
 interface IChatRoomState {
   users? : Array<IUser>;
   messages? : Array<IMessage>;
+  loading? : boolean;
 }
 
 interface ISignupProps {

@@ -95,3 +95,30 @@ function logout() {
     });
 }
 exports.logout = logout;
+function sendMessage(message) {
+    return axios_1.default.post('/api/messages/send', message)
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/messages/send/" + JSON.stringify(message), 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.sendMessage = sendMessage;
+function enterChat(username, chatId) {
+    return axios_1.default.post('/api/chats/enter', { username: username, chatId: chatId })
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/chat/enter/" + JSON.stringify({ username: username, chatId: chatId }), 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.enterChat = enterChat;
+function quitChat(username, chatId) {
+    return axios_1.default.post('/api/chats/quit', { username: username, chatId: chatId })
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/chat/quit/" + JSON.stringify({ username: username, chatId: chatId }), 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.quitChat = quitChat;

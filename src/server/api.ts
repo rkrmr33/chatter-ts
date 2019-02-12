@@ -5,9 +5,9 @@ import axios from 'axios';
 import { check, validationResult } from 'express-validator/check';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import config from './config';
-import { Session } from 'inspector';
+import { EventEmitter } from 'events';
 
+import config from './config';
 
 const router = express.Router();
 
@@ -25,6 +25,12 @@ let mdb : mongodb.Db;
     ));
 })()
 
+
+
+/**
+ *    Users creation & Users authorization
+ */
+
 // Fetch a random color for the user generation
 router.get('/api/color', (req : express.Request, res : express.Response) => {
   return axios.get(config.RANDOM_COLOR_API)
@@ -36,145 +42,6 @@ router.get('/api/color', (req : express.Request, res : express.Response) => {
     })
     .catch(err => {
       console.error(`[-] Could not find color from ${config.RANDOM_COLOR_API}. Error: ${err}`);
-    });
-});
-
-// Fetch all the chats from the db
-router.get('/api/chats', (req : express.Request, res) => {
-  let chats : any = {};
-  mdb.collection('chats').find({})
-    .toArray((err, chatsArray) => {
-      try {
-        assert.equal(null, err);
-        assert.notEqual(0, chatsArray.length);
-      } catch(e) {
-        console.error(`[-] Assertion Error: ${e}`);
-        res.send('no chats found').status(404);
-      }
-      chatsArray.forEach(chat => {
-        chats[chat._id] = chat;
-      });
-
-      res.send(chats);
-      res.end();
-    })
-});
-
-// Fetch one chat by [chatId]
-router.get('/api/chats/:chatId', (req : express.Request, res) => {
-  let chatId = req.params.chatId;
-  try {
-    new ObjectID(chatId);
-  } catch (e) {
-    console.error(`[-] Could not build ObjectID from: ${req.params.chatId}`);
-    res.status(404).end(null);
-    return;
-  }
-  mdb.collection('chats').findOne({ _id: new ObjectID(chatId) })
-    .then(chat => res.send(chat))
-    .catch(err => {
-      console.error(`[-] Could not find chat with id: ${chatId}.\nError:${err}`);
-      res.send(null).status(404);
-    });
-});
-
-// Fetch one chat by [chatId] and then find messages related to chat
-router.get('/api/chats/full/id/:chatId', (req : express.Request, res) => {
-  let chatId = req.params.chatId;
-  try {
-    new ObjectID(chatId);
-  } catch (e) {
-    console.error(`[-] Could not build ObjectID from: ${req.params.chatId}`);
-    res.status(404).end(null);
-    return;
-  }
-  mdb.collection('chats').findOne({ _id: new ObjectID(chatId) })
-    .then(chat => {
-      mdb.collection('messages').find({ chatId })
-        .toArray((err : MongoError, messages) => {
-          try {
-            assert.equal(null, err);
-          } catch(e) {
-            console.error(`[-] Assertion Error: ${e}`);
-            res.send([]).status(404);
-            return;
-          }
-          res.send({
-            currentChat: chat,
-            messages
-          });
-        })
-    })
-    .catch(err => {
-      console.error(`[-] Could not find chat with id: ${chatId}.\nError:${err}`);
-      res.send(null).status(404);
-    });
-});
-
-// Fetch one chat by [chatName] and then find messages related to chat
-router.get('/api/chats/full/name/:chatName', (req : express.Request, res) => {
-  let chatName = req.params.chatName;
-  // no chat name
-  if (chatName === '') {
-    res.send(null).status(404);
-    return;
-  }
-
-  mdb.collection('chats').findOne({ chatName: chatName })
-    .then(chat => {
-      mdb.collection('messages').find({ chatId: chat._id })
-        .toArray((err : MongoError, messages) => {
-          try {
-            assert.equal(null, err);
-          } catch(e) {
-            console.error(`[-] Assertion Error: ${e}`);
-            res.send([]).status(404);
-            return;
-          }
-          res.send({
-            currentChat: chat,
-            messages
-          });
-        })
-    })
-    .catch(err => {
-      console.error(`[-] Could not find chat with name: ${chatName}.\nError:${err}`);
-      res.send(null).status(404);
-    });
-});
-
-// Fetch messages of [chatId]
-router.get('/api/messages/:chatId', (req : express.Request, res) => {
-  let chatId = req.params.chatId;
-  try {
-    new ObjectID(chatId);
-  } catch (e) {
-    console.error(`[-] Could not build ObjectID from: ${req.params.chatId}`);
-    res.status(404).end(null);
-    return;
-  }
-  mdb.collection('messages').find({ chatId: chatId })
-    .toArray((err, messages) => {
-      try {
-        assert.equal(null, err);
-      } catch(e) {
-        console.error(`[-] Assertion Error: ${e}`);
-        res.send([]).status(404);
-        return;
-      }
-      console.log(messages);
-      res.send(messages);
-    })
-});
-
-// Inserts messages to the db
-router.post('/api/messages/send', (req : express.Request, res : any) => {
-  const message : IMessage = (req.body as IMessage);
-  mdb.collection('messages').insertOne(message)
-    .then(result => console.log(result))
-    .catch(err => {
-      console.error(`[-] Could not send message: ${JSON.stringify(message)}.\nError:${err}`);
-      res.send(null).status(404);
     });
 });
 
@@ -352,7 +219,7 @@ router.post('/api/users/login', (req : express.Request, res : express.Response) 
     .catch(err => { throw err });
 });
 
-
+// handles user logout
 router.get('/api/users/logout', (req : express.Request, res : express.Response) => {
   if (!req.session || !req.session.userToken) {
     res.send(false);
@@ -366,6 +233,7 @@ router.get('/api/users/logout', (req : express.Request, res : express.Response) 
     
 });
 
+// gets the request session user token and sends back the user object to store in the app state
 router.get('/api/users/current_user', (req : express.Request, res : express.Response) => {
   if (!req.session || !req.session.userToken) {
     res.send(false);
@@ -377,4 +245,305 @@ router.get('/api/users/current_user', (req : express.Request, res : express.Resp
     })
   }
 });
+
+
+
+/**
+ *    Chats data fetchers
+ */
+
+// Fetch all the chats from the db
+router.get('/api/chats', (req : express.Request, res) => {
+  let chats : any = {};
+  mdb.collection('chats').find({})
+    .toArray((err, chatsArray) => {
+      try {
+        assert.equal(null, err);
+        assert.notEqual(0, chatsArray.length);
+      } catch(e) {
+        console.error(`[-] Assertion Error: ${e}`);
+        res.send('no chats found').status(404);
+      }
+      chatsArray.forEach(chat => {
+        chats[chat._id] = chat;
+      });
+
+      res.send(chats);
+      res.end();
+    })
+});
+
+// Fetch one chat by [chatId]
+router.get('/api/chats/:chatId', (req : express.Request, res) => {
+  let chatId = req.params.chatId;
+  try {
+    new ObjectID(chatId);
+  } catch (e) {
+    console.error(`[-] Could not build ObjectID from: ${req.params.chatId}`);
+    res.status(404).end(null);
+    return;
+  }
+  mdb.collection('chats').findOne({ _id: new ObjectID(chatId) })
+    .then(chat => res.send(chat))
+    .catch(err => {
+      console.error(`[-] Could not find chat with id: ${chatId}.\nError:${err}`);
+      res.send(null).status(404);
+    });
+});
+
+// Fetch one chat by [chatId] and then find messages related to chat
+router.get('/api/chats/full/id/:chatId', (req : express.Request, res) => {
+  let chatId = req.params.chatId;
+  try {
+    new ObjectID(chatId);
+  } catch (e) {
+    console.error(`[-] Could not build ObjectID from: ${req.params.chatId}`);
+    res.status(404).end(null);
+    return;
+  }
+  mdb.collection('chats').findOne({ _id: new ObjectID(chatId) })
+    .then(chat => {
+      if (!chat) {
+        res.sendStatus(404) // chat not found
+        return;
+      }
+      mdb.collection('messages').find({ chatId })
+        .toArray((err : MongoError, messages) => {
+          try {
+            assert.equal(null, err);
+          } catch(e) {
+            console.error(`[-] Assertion Error: ${e}`);
+            res.send([]).status(404);
+            return;
+          }
+          res.send({
+            currentChat: chat,
+            messages
+          });
+        })
+    })
+    .catch(err => {
+      console.error(`[-] Could not find chat with id: ${chatId}.\nError:${err}`);
+      res.send(null).status(404);
+    });
+});
+
+// Fetch one chat by [chatName] and then find messages related to chat
+router.get('/api/chats/full/name/:chatName', (req : express.Request, res) => {
+  let chatName = req.params.chatName;
+  // no chat name
+  if (chatName === '') {
+    res.send(null).status(404);
+    return;
+  }
+
+  mdb.collection('chats').findOne({ chatName })
+    .then(chat => {
+      if (!chat) {
+        res.sendStatus(404) // chat not found
+        return;
+      }
+
+      // find messages of the chat
+      const chatId = chat._id; 
+      mdb.collection('messages').find({ chatId: chatId.toString() })
+        .toArray((err : MongoError, messages) => {
+          try {
+            assert.equal(null, err);
+          } catch(e) {
+            console.error(`[-] Assertion Error: ${e}`);
+            res.send([]).status(404);
+            return;
+          }
+          res.send({
+            currentChat: chat,
+            messages
+          });
+        })
+    })
+    .catch(err => {
+      console.error(`[-] Could not find chat with name: ${chatName}.\nError:${err}`);
+      res.send(null).status(404);
+    });
+});
+
+// Fetch messages of [chatId] -- not in use --
+router.get('/api/messages/:chatId', (req : express.Request, res) => {
+  let chatId = req.params.chatId;
+  try {
+    new ObjectID(chatId);
+  } catch (e) {
+    console.error(`[-] Could not build ObjectID from: ${req.params.chatId}`);
+    res.status(404).end(null);
+    return;
+  }
+  mdb.collection('messages').find({ chatId: chatId })
+    .toArray((err, messages) => {
+      try {
+        assert.equal(null, err);
+      } catch(e) {
+        console.error(`[-] Assertion Error: ${e}`);
+        res.send([]).status(404);
+        return;
+      }
+      res.send(messages);
+    })
+});
+
+
+
+/**
+ *    Chat Rooms Handlers
+ */
+
+const newMessage = new EventEmitter().setMaxListeners(10000);  // emits every time a new message is sent
+const newUser    = new EventEmitter().setMaxListeners(10000);  // emits every time a user leaves or joins a chat-room
+const newVote    = new EventEmitter().setMaxListeners(10000);  // emits every time a message gets a vote
+
+// Chat Stream
+router.get('/api/stream/:chatId', (req : express.Request, res : express.Response) => {
+
+  const chatId = req.params.chatId;
+
+  res.writeHead(200, {
+		Connection: 'keep-alive',
+		'Content-Type': 'text/event-stream',
+		'Cache-Control': 'no-cache',
+		'Access-Control-Allow-Origin': '*'
+  });
+  
+  // handles new messages
+  newMessage.addListener('new-message', (msg : IMessage) => {
+    if (msg.chatId === chatId) {
+      res.write('event: new-message\n');
+      res.write(`data: ${JSON.stringify(msg)}`);
+      res.write('\n\n');
+    }
+  });
+
+  // handles user enter chat
+  newUser.addListener('user-enter', (username : string, _id : string) => {
+    if (chatId === _id) {
+      res.write('event: user-enter\n');
+      res.write(`data: ${username}`);
+      res.write('\n\n');
+    }
+  });
+
+  // handles user quit chat
+  newUser.addListener('user-quit', (username : string, _id : string) => {
+    if (chatId === _id) {
+      res.write('event: user-quit\n');
+      res.write(`data: ${username}`);
+      res.write('\n\n');
+    }
+  });
+
+  // sets the client re-connection time to 1-sec 
+  res.write('retry: 1000\n\n');
+});
+
+// Sends a messages to the db
+router.post('/api/messages/send', (req : express.Request, res : express.Response) => {
+
+  const message : IMessage = (req.body as IMessage);
+
+  config.VERBAL && console.log(`a new message was sent in ${req.body.chatId}`);
+
+  mdb.collection('messages').insertOne(message)
+    .then(result => {
+      if (result.insertedCount === 1 && result.ops[0]) {
+        newMessage.emit('new-message', result.ops[0]); // emit a new event to stream
+        res.send(result.ops[0])
+      }
+      else {
+        res.send(null).status(500);
+      }
+    })
+    .catch(err => {
+      console.error(`[-] Could not send message: ${JSON.stringify(message)}.\nError:${err}`);
+      res.send(null).status(500);
+    });
+});
+
+// Inserts [username] to [chatId] users list
+router.post('/api/chats/enter', (req : express.Request, res : express.Response) => {
+  const username = req.body.username;
+  const chatId = req.body.chatId;
+
+  config.VERBAL && console.log(`${username} entered chat: ${chatId}`);
+
+  if (!chatId || !username) {
+    res.status(400).send(`could not push ${username} to chat ${chatId}`);
+    return;
+  }
+
+  //find the chat
+  mdb.collection('chats').findOne({ _id: new ObjectID(chatId)	})
+    .then(chat => {
+      if (!chat) { // if chat is not found
+        res.send(`could not find chat with id ${chat._id}`).status(400);
+        return;
+      }
+      if (chat.users.indexOf(username) > -1) { // if tried to push same username twice
+        res.status(400).send(`${username} is already in the chat user list ${JSON.stringify(chat.users)}`);
+        return;
+      }
+      // update chat users list
+      mdb.collection('chats').updateOne(
+        { _id: new ObjectID(chatId) },
+        { $push: { users: username } }
+      ).then((result : any)=> {
+        if(result.result.ok) { // inserted username
+          newUser.emit('user-enter', username, chatId)
+          res.status(200).send(true); 
+        }
+        else
+          res.send(null);
+      })
+      .catch(e => {
+        console.error(e);
+        res.status(404).send('Somthing went wrong');
+      });
+    })
+		.catch(e => {
+			console.error(e);
+			res.status(404).send('Somthing went wrong');
+		});
+});
+
+// Removes [username] from [chatId] users list
+router.post('/api/chats/quit', (req : express.Request, res : express.Response) => {
+  const username = req.body.username;
+  const chatId = req.body.chatId;
+  
+  config.VERBAL && console.log(`${username} quit chat: ${chatId}`);
+  
+
+  if (!chatId || !username) {
+    res.status(400).send(`could not push ${username} to chat ${chatId}`);
+    return;
+  }
+
+	mdb.collection('chats').findOneAndUpdate(
+		{ _id: new ObjectID(chatId)	},
+		{ $pull: { users: username } }
+	).then(result => {
+		if(result && result.ok && result.ok == 1) { // user quit
+      newUser.emit('user-quit', username, chatId)
+			res.status(200).send(true);
+    }
+		else
+			res.status(400).send(false);
+	})
+		.catch(e => {
+			console.error(e);
+			res.status(404).send('Somthing went wrong');
+		});
+});
+
+
+
+
+
 export default router;

@@ -88,6 +88,7 @@ function fetchChatPageData(req : express.Request) {
         return null;
       }
       const data = response.data;
+      
       if (data) {
         const __INITIAL_DATA__ = defaultAppState;
         __INITIAL_DATA__.display = Routes.CHAT_ROOM;

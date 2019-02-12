@@ -1,12 +1,12 @@
 /// <reference path="./Components/interfaces.d.ts" />
 import React, { Component } from 'react';
+import { AxiosPromise } from 'axios';
 
 import Header from './Components/Header';
 import ChatList from './Components/ChatList';
 import ChatRoom from './Components/ChatRoom';
 import Signup from './Components/Signup';
 import Login from './Components/Login';
-import { AxiosPromise } from 'axios';
 
 
 // utils file will be imported once the document has been defined
@@ -121,6 +121,7 @@ class App extends Component<any, IAppState> {
       .then((result : boolean) => {
         if(result) {
           this.setState({ user: undefined }, () => {
+            this.loadMain();
             history.replaceState(this.state, '');
           })
         }

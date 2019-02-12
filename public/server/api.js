@@ -17,6 +17,7 @@ var axios_1 = __importDefault(require("axios"));
 var check_1 = require("express-validator/check");
 var bcrypt_1 = __importDefault(require("bcrypt"));
 var jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+var events_1 = require("events");
 var config_1 = __importDefault(require("./config"));
 var router = express_1.default.Router();
 var mdb;
@@ -31,6 +32,9 @@ var mdb;
         return console.error("[-] Could not connect to remote db. Error: " + err);
     });
 })();
+/**
+ *    Users creation & Users authorization
+ */
 // Fetch a random color for the user generation
 router.get('/api/color', function (req, res) {
     return axios_1.default.get(config_1.default.RANDOM_COLOR_API)
@@ -42,144 +46,6 @@ router.get('/api/color', function (req, res) {
     })
         .catch(function (err) {
         console.error("[-] Could not find color from " + config_1.default.RANDOM_COLOR_API + ". Error: " + err);
-    });
-});
-// Fetch all the chats from the db
-router.get('/api/chats', function (req, res) {
-    var chats = {};
-    mdb.collection('chats').find({})
-        .toArray(function (err, chatsArray) {
-        try {
-            assert_1.default.equal(null, err);
-            assert_1.default.notEqual(0, chatsArray.length);
-        }
-        catch (e) {
-            console.error("[-] Assertion Error: " + e);
-            res.send('no chats found').status(404);
-        }
-        chatsArray.forEach(function (chat) {
-            chats[chat._id] = chat;
-        });
-        res.send(chats);
-        res.end();
-    });
-});
-// Fetch one chat by [chatId]
-router.get('/api/chats/:chatId', function (req, res) {
-    var chatId = req.params.chatId;
-    try {
-        new mongodb_1.ObjectID(chatId);
-    }
-    catch (e) {
-        console.error("[-] Could not build ObjectID from: " + req.params.chatId);
-        res.status(404).end(null);
-        return;
-    }
-    mdb.collection('chats').findOne({ _id: new mongodb_1.ObjectID(chatId) })
-        .then(function (chat) { return res.send(chat); })
-        .catch(function (err) {
-        console.error("[-] Could not find chat with id: " + chatId + ".\nError:" + err);
-        res.send(null).status(404);
-    });
-});
-// Fetch one chat by [chatId] and then find messages related to chat
-router.get('/api/chats/full/id/:chatId', function (req, res) {
-    var chatId = req.params.chatId;
-    try {
-        new mongodb_1.ObjectID(chatId);
-    }
-    catch (e) {
-        console.error("[-] Could not build ObjectID from: " + req.params.chatId);
-        res.status(404).end(null);
-        return;
-    }
-    mdb.collection('chats').findOne({ _id: new mongodb_1.ObjectID(chatId) })
-        .then(function (chat) {
-        mdb.collection('messages').find({ chatId: chatId })
-            .toArray(function (err, messages) {
-            try {
-                assert_1.default.equal(null, err);
-            }
-            catch (e) {
-                console.error("[-] Assertion Error: " + e);
-                res.send([]).status(404);
-                return;
-            }
-            res.send({
-                currentChat: chat,
-                messages: messages
-            });
-        });
-    })
-        .catch(function (err) {
-        console.error("[-] Could not find chat with id: " + chatId + ".\nError:" + err);
-        res.send(null).status(404);
-    });
-});
-// Fetch one chat by [chatName] and then find messages related to chat
-router.get('/api/chats/full/name/:chatName', function (req, res) {
-    var chatName = req.params.chatName;
-    // no chat name
-    if (chatName === '') {
-        res.send(null).status(404);
-        return;
-    }
-    mdb.collection('chats').findOne({ chatName: chatName })
-        .then(function (chat) {
-        mdb.collection('messages').find({ chatId: chat._id })
-            .toArray(function (err, messages) {
-            try {
-                assert_1.default.equal(null, err);
-            }
-            catch (e) {
-                console.error("[-] Assertion Error: " + e);
-                res.send([]).status(404);
-                return;
-            }
-            res.send({
-                currentChat: chat,
-                messages: messages
-            });
-        });
-    })
-        .catch(function (err) {
-        console.error("[-] Could not find chat with name: " + chatName + ".\nError:" + err);
-        res.send(null).status(404);
-    });
-});
-// Fetch messages of [chatId]
-router.get('/api/messages/:chatId', function (req, res) {
-    var chatId = req.params.chatId;
-    try {
-        new mongodb_1.ObjectID(chatId);
-    }
-    catch (e) {
-        console.error("[-] Could not build ObjectID from: " + req.params.chatId);
-        res.status(404).end(null);
-        return;
-    }
-    mdb.collection('messages').find({ chatId: chatId })
-        .toArray(function (err, messages) {
-        try {
-            assert_1.default.equal(null, err);
-        }
-        catch (e) {
-            console.error("[-] Assertion Error: " + e);
-            res.send([]).status(404);
-            return;
-        }
-        console.log(messages);
-        res.send(messages);
-    });
-});
-// Inserts messages to the db
-router.post('/api/messages/send', function (req, res) {
-    var message = req.body;
-    mdb.collection('messages').insertOne(message)
-        .then(function (result) { return console.log(result); })
-        .catch(function (err) {
-        console.error("[-] Could not send message: " + JSON.stringify(message) + ".\nError:" + err);
-        res.send(null).status(404);
     });
 });
 // Inserts a new user to db
@@ -339,6 +205,7 @@ router.post('/api/users/login', function (req, res) {
     })
         .catch(function (err) { throw err; });
 });
+// handles user logout
 router.get('/api/users/logout', function (req, res) {
     if (!req.session || !req.session.userToken) {
         res.send(false);
@@ -350,6 +217,7 @@ router.get('/api/users/logout', function (req, res) {
         res.send(true);
     });
 });
+// gets the request session user token and sends back the user object to store in the app state
 router.get('/api/users/current_user', function (req, res) {
     if (!req.session || !req.session.userToken) {
         res.send(false);
@@ -361,5 +229,267 @@ router.get('/api/users/current_user', function (req, res) {
             res.send(user);
         });
     }
+});
+/**
+ *    Chats data fetchers
+ */
+// Fetch all the chats from the db
+router.get('/api/chats', function (req, res) {
+    var chats = {};
+    mdb.collection('chats').find({})
+        .toArray(function (err, chatsArray) {
+        try {
+            assert_1.default.equal(null, err);
+            assert_1.default.notEqual(0, chatsArray.length);
+        }
+        catch (e) {
+            console.error("[-] Assertion Error: " + e);
+            res.send('no chats found').status(404);
+        }
+        chatsArray.forEach(function (chat) {
+            chats[chat._id] = chat;
+        });
+        res.send(chats);
+        res.end();
+    });
+});
+// Fetch one chat by [chatId]
+router.get('/api/chats/:chatId', function (req, res) {
+    var chatId = req.params.chatId;
+    try {
+        new mongodb_1.ObjectID(chatId);
+    }
+    catch (e) {
+        console.error("[-] Could not build ObjectID from: " + req.params.chatId);
+        res.status(404).end(null);
+        return;
+    }
+    mdb.collection('chats').findOne({ _id: new mongodb_1.ObjectID(chatId) })
+        .then(function (chat) { return res.send(chat); })
+        .catch(function (err) {
+        console.error("[-] Could not find chat with id: " + chatId + ".\nError:" + err);
+        res.send(null).status(404);
+    });
+});
+// Fetch one chat by [chatId] and then find messages related to chat
+router.get('/api/chats/full/id/:chatId', function (req, res) {
+    var chatId = req.params.chatId;
+    try {
+        new mongodb_1.ObjectID(chatId);
+    }
+    catch (e) {
+        console.error("[-] Could not build ObjectID from: " + req.params.chatId);
+        res.status(404).end(null);
+        return;
+    }
+    mdb.collection('chats').findOne({ _id: new mongodb_1.ObjectID(chatId) })
+        .then(function (chat) {
+        if (!chat) {
+            res.sendStatus(404); // chat not found
+            return;
+        }
+        mdb.collection('messages').find({ chatId: chatId })
+            .toArray(function (err, messages) {
+            try {
+                assert_1.default.equal(null, err);
+            }
+            catch (e) {
+                console.error("[-] Assertion Error: " + e);
+                res.send([]).status(404);
+                return;
+            }
+            res.send({
+                currentChat: chat,
+                messages: messages
+            });
+        });
+    })
+        .catch(function (err) {
+        console.error("[-] Could not find chat with id: " + chatId + ".\nError:" + err);
+        res.send(null).status(404);
+    });
+});
+// Fetch one chat by [chatName] and then find messages related to chat
+router.get('/api/chats/full/name/:chatName', function (req, res) {
+    var chatName = req.params.chatName;
+    // no chat name
+    if (chatName === '') {
+        res.send(null).status(404);
+        return;
+    }
+    mdb.collection('chats').findOne({ chatName: chatName })
+        .then(function (chat) {
+        if (!chat) {
+            res.sendStatus(404); // chat not found
+            return;
+        }
+        // find messages of the chat
+        var chatId = chat._id;
+        mdb.collection('messages').find({ chatId: chatId.toString() })
+            .toArray(function (err, messages) {
+            try {
+                assert_1.default.equal(null, err);
+            }
+            catch (e) {
+                console.error("[-] Assertion Error: " + e);
+                res.send([]).status(404);
+                return;
+            }
+            res.send({
+                currentChat: chat,
+                messages: messages
+            });
+        });
+    })
+        .catch(function (err) {
+        console.error("[-] Could not find chat with name: " + chatName + ".\nError:" + err);
+        res.send(null).status(404);
+    });
+});
+// Fetch messages of [chatId] -- not in use --
+router.get('/api/messages/:chatId', function (req, res) {
+    var chatId = req.params.chatId;
+    try {
+        new mongodb_1.ObjectID(chatId);
+    }
+    catch (e) {
+        console.error("[-] Could not build ObjectID from: " + req.params.chatId);
+        res.status(404).end(null);
+        return;
+    }
+    mdb.collection('messages').find({ chatId: chatId })
+        .toArray(function (err, messages) {
+        try {
+            assert_1.default.equal(null, err);
+        }
+        catch (e) {
+            console.error("[-] Assertion Error: " + e);
+            res.send([]).status(404);
+            return;
+        }
+        res.send(messages);
+    });
+});
+/**
+ *    Chat Rooms Handlers
+ */
+var newMessage = new events_1.EventEmitter().setMaxListeners(10000); // emits every time a new message is sent
+var newUser = new events_1.EventEmitter().setMaxListeners(10000); // emits every time a user leaves or joins a chat-room
+var newVote = new events_1.EventEmitter().setMaxListeners(10000); // emits every time a message gets a vote
+// Chat Stream
+router.get('/api/stream/:chatId', function (req, res) {
+    var chatId = req.params.chatId;
+    res.writeHead(200, {
+        Connection: 'keep-alive',
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*'
+    });
+    // handles new messages
+    newMessage.addListener('new-message', function (msg) {
+        if (msg.chatId === chatId) {
+            res.write('event: new-message\n');
+            res.write("data: " + JSON.stringify(msg));
+            res.write('\n\n');
+        }
+    });
+    // handles user enter chat
+    newUser.addListener('user-enter', function (username, _id) {
+        if (chatId === _id) {
+            res.write('event: user-enter\n');
+            res.write("data: " + username);
+            res.write('\n\n');
+        }
+    });
+    // handles user quit chat
+    newUser.addListener('user-quit', function (username, _id) {
+        if (chatId === _id) {
+            res.write('event: user-quit\n');
+            res.write("data: " + username);
+            res.write('\n\n');
+        }
+    });
+    // sets the client re-connection time to 1-sec 
+    res.write('retry: 1000\n\n');
+});
+// Sends a messages to the db
+router.post('/api/messages/send', function (req, res) {
+    var message = req.body;
+    config_1.default.VERBAL && console.log("a new message was sent in " + req.body.chatId);
+    mdb.collection('messages').insertOne(message)
+        .then(function (result) {
+        if (result.insertedCount === 1 && result.ops[0]) {
+            newMessage.emit('new-message', result.ops[0]); // emit a new event to stream
+            res.send(result.ops[0]);
+        }
+        else {
+            res.send(null).status(500);
+        }
+    })
+        .catch(function (err) {
+        console.error("[-] Could not send message: " + JSON.stringify(message) + ".\nError:" + err);
+        res.send(null).status(500);
+    });
+});
+// Inserts [username] to [chatId] users list
+router.post('/api/chats/enter', function (req, res) {
+    var username = req.body.username;
+    var chatId = req.body.chatId;
+    config_1.default.VERBAL && console.log(username + " entered chat: " + chatId);
+    if (!chatId || !username) {
+        res.status(400).send("could not push " + username + " to chat " + chatId);
+        return;
+    }
+    //find the chat
+    mdb.collection('chats').findOne({ _id: new mongodb_1.ObjectID(chatId) })
+        .then(function (chat) {
+        if (!chat) { // if chat is not found
+            res.send("could not find chat with id " + chat._id).status(400);
+            return;
+        }
+        if (chat.users.indexOf(username) > -1) { // if tried to push same username twice
+            res.status(400).send(username + " is already in the chat user list " + JSON.stringify(chat.users));
+            return;
+        }
+        // update chat users list
+        mdb.collection('chats').updateOne({ _id: new mongodb_1.ObjectID(chatId) }, { $push: { users: username } }).then(function (result) {
+            if (result.result.ok) { // inserted username
+                newUser.emit('user-enter', username, chatId);
+                res.status(200).send(true);
+            }
+            else
+                res.send(null);
+        })
+            .catch(function (e) {
+            console.error(e);
+            res.status(404).send('Somthing went wrong');
+        });
+    })
+        .catch(function (e) {
+        console.error(e);
+        res.status(404).send('Somthing went wrong');
+    });
+});
+// Removes [username] from [chatId] users list
+router.post('/api/chats/quit', function (req, res) {
+    var username = req.body.username;
+    var chatId = req.body.chatId;
+    config_1.default.VERBAL && console.log(username + " quit chat: " + chatId);
+    if (!chatId || !username) {
+        res.status(400).send("could not push " + username + " to chat " + chatId);
+        return;
+    }
+    mdb.collection('chats').findOneAndUpdate({ _id: new mongodb_1.ObjectID(chatId) }, { $pull: { users: username } }).then(function (result) {
+        if (result && result.ok && result.ok == 1) { // user quit
+            newUser.emit('user-quit', username, chatId);
+            res.status(200).send(true);
+        }
+        else
+            res.status(400).send(false);
+    })
+        .catch(function (e) {
+        console.error(e);
+        res.status(404).send('Somthing went wrong');
+    });
 });
 exports.default = router;

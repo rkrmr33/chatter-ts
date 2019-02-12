@@ -95,6 +95,7 @@ var App = /** @class */ (function (_super) {
                 .then(function (result) {
                 if (result) {
                     _this.setState({ user: undefined }, function () {
+                        _this.loadMain();
                         history.replaceState(_this.state, '');
                     });
                 }
