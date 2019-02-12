@@ -59,6 +59,7 @@ class App extends Component<any, IAppState> {
 
 		// handle popstate event
 		window.addEventListener('popstate', e => {
+      this.relogin();
 			this.setState(e.state);
 		});
   }
@@ -134,7 +135,12 @@ class App extends Component<any, IAppState> {
   relogin = () : void => {
     util.relogin()
       .then((user : any) => {
-        if (!user) return;
+        console.log('reached');
+        if (!user) {
+          this.setState({ user: undefined }, () => {
+            history.replaceState(this.state, '');
+          });
+        }
         this.setState({ user }, () => {
           history.replaceState(this.state, '');
         });

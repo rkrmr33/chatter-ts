@@ -107,8 +107,12 @@ var App = /** @class */ (function (_super) {
         _this.relogin = function () {
             util.relogin()
                 .then(function (user) {
-                if (!user)
-                    return;
+                console.log('reached');
+                if (!user) {
+                    _this.setState({ user: undefined }, function () {
+                        history.replaceState(_this.state, '');
+                    });
+                }
                 _this.setState({ user: user }, function () {
                     history.replaceState(_this.state, '');
                 });
@@ -146,6 +150,7 @@ var App = /** @class */ (function (_super) {
         delete window.__INITIAL_DATA__;
         // handle popstate event
         window.addEventListener('popstate', function (e) {
+            _this.relogin();
             _this.setState(e.state);
         });
     };
