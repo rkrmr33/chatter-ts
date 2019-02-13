@@ -239,8 +239,9 @@ router.get('/api/users/current_user', function (req, res) {
 });
 // gets the request session user token and sends back the user object to store in the app state
 router.get('/api/users/authenticate', function (req, res) {
-    console.log(req.session);
     var userCredentials;
+    if (req.session)
+        console.log(req.session.userToken);
     if (!req.session || !req.session.userToken) {
         res.send(undefined);
         return;
