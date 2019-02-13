@@ -631,9 +631,11 @@ router.post('/api/chats/quit', (req : express.Request, res : express.Response) =
 		{ _id: new ObjectID(chatId)	},
 		{ $pull: { users: username } }
 	).then(result => {
-		if(result && result.ok && result.ok == 1) { // user quit
-      newUser.emit('user-quit', username, chatId)
-			res.status(200).send(true);
+    if(result && result.ok && result.ok == 1) { // user quit
+      setTimeout(()=>{
+        newUser.emit('user-quit', username, chatId)
+        res.status(200).send(true);
+      },1000);
     }
 		else
 			res.status(400).send(false);

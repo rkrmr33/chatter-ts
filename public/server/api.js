@@ -567,8 +567,10 @@ router.post('/api/chats/quit', function (req, res) {
     }
     mdb.collection('chats').findOneAndUpdate({ _id: new mongodb_1.ObjectID(chatId) }, { $pull: { users: username } }).then(function (result) {
         if (result && result.ok && result.ok == 1) { // user quit
-            newUser.emit('user-quit', username, chatId);
-            res.status(200).send(true);
+            setTimeout(function () {
+                newUser.emit('user-quit', username, chatId);
+                res.status(200).send(true);
+            }, 1000);
         }
         else
             res.status(400).send(false);
