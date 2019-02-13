@@ -262,7 +262,7 @@ router.get('/api/users/authenticate', (req : express.Request, res : express.Resp
     console.log(req.session.userToken);
 
   if (!req.session || !req.session.userToken) {
-    res.send(undefined);
+    res.send(false);
     return;
   }
   else {

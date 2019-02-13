@@ -243,7 +243,7 @@ router.get('/api/users/authenticate', function (req, res) {
     if (req.session)
         console.log(req.session.userToken);
     if (!req.session || !req.session.userToken) {
-        res.send(undefined);
+        res.send(false);
         return;
     }
     else {
