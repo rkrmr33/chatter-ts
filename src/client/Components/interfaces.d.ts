@@ -51,8 +51,12 @@ interface IMessage {
   timestamp : string;
 }
 
-interface IChatList {
+interface IChatListProps {
   onChatClick(chatId : string) : void;
+  chatList : any;
+}
+
+interface IChatListState {
   chatList : any;
 }
 
@@ -74,11 +78,13 @@ interface IChatRoomProps {
 interface IChatRoomState {
   users? : Array<IUser>;
   messages? : Array<IMessage>;
+  loading? : boolean;
 }
 
 interface ISignupProps {
-  login(user : IUser) : void;
+  login(credentials:any) : any;
   goToLogin() : void;
+  goToChatter() : void;
 }
 
 interface ISignupState {
@@ -102,8 +108,9 @@ interface IFormErrors {
 }
 
 interface ILoginProps {
-  login(user : IUser) : void;
+  login(credentials:any) : any;
   goToSignup() : void;
+  goToChatter() : void;
 }
 
 interface ILoginState {

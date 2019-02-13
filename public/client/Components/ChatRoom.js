@@ -31,15 +31,87 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var react_1 = __importDefault(require("react"));
 var Message_1 = __importDefault(require("./Message"));
 var scrollTarget;
+var dataStream;
+var util;
+var enteredChat = false;
 var ChatRoom = /** @class */ (function (_super) {
     __extends(ChatRoom, _super);
     function ChatRoom(props) {
         var _this = _super.call(this, props) || this;
-        _this.addUserToChatRoom = function (user) {
-            return;
+        _this.componentCleanup = function () {
+            if (_this.props.chat && _this.props.user)
+                util.quitChat(_this.props.user.username, _this.props.chat._id);
+            if (dataStream) {
+                dataStream.close();
+            }
         };
-        _this.sendMessage = function () {
-            return;
+        /***
+         *  if a user clicks on logout, handle the leave before the state cleans
+         **/
+        _this.logoutBail = function () {
+            var logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function (e) {
+                    _this.componentCleanup();
+                });
+            }
+        };
+        /**
+         *   EVENTS HANDLERS
+         */
+        // Handles Messages Events
+        _this.handleMessagesEvents = function (e) {
+            var newMessage = JSON.parse(e.data);
+            var chatMessages = _this.state.messages;
+            if (chatMessages && newMessage) {
+                chatMessages.push(newMessage);
+                _this.setState({ messages: chatMessages });
+            }
+        };
+        // Handles Users Events
+        _this.handleUsersEvents = function (e) {
+            var users = _this.state.users;
+            if (users) {
+                switch (e.type) {
+                    case 'user-enter':
+                        users.push(e.data);
+                        break;
+                    case 'user-quit':
+                        users = users.filter(function (user) { return user !== e.data; });
+                        break;
+                    default: break;
+                }
+                // update users list
+                _this.setState({ users: users });
+            }
+        };
+        _this.addUserToChatRoom = function () {
+            enteredChat = true;
+            if (_this.props.user && _this.props.chat)
+                util.enterChat(_this.props.user.username, _this.props.chat._id);
+        };
+        _this.sendMessage = function (e) {
+            e.preventDefault();
+            var messageText = document.getElementById('messageText');
+            if (messageText && messageText.value && _this.props.chat && _this.props.user) {
+                var message = {
+                    chatId: _this.props.chat._id,
+                    user: {
+                        username: _this.props.user.username,
+                        specialColor: _this.props.user.specialColor,
+                        avatar: _this.props.user.avatar
+                    },
+                    body: messageText.value,
+                    votes: [],
+                    timestamp: new Date()
+                };
+                util.sendMessage(message)
+                    .then(function (sentMessage) {
+                    if (sentMessage) {
+                        messageText.value = '';
+                    }
+                });
+            }
         };
         /**
          * This function grabs all the messages we fetched from the
@@ -73,7 +145,7 @@ var ChatRoom = /** @class */ (function (_super) {
         _this.restrictGuests = function (user) {
             if (user) {
                 return (react_1.default.createElement("div", { className: "ui action input", id: "input-segment" },
-                    react_1.default.createElement("input", { id: "messageText", type: "text", autoFocus: true }),
+                    react_1.default.createElement("input", { id: "messageText", type: "text", placeholder: "Type a message...", autoFocus: true }),
                     react_1.default.createElement("button", { type: "submit", id: "sendButton", className: "ui blue button" }, "Send")));
             }
             return (react_1.default.createElement("div", { className: "ui action input", id: "input-segment" },
@@ -96,14 +168,45 @@ var ChatRoom = /** @class */ (function (_super) {
         };
         _this.state = {
             messages: props.messages,
-            users: props.chat.users
+            users: props.chat.users,
+            loading: true
         };
+        enteredChat = false;
         return _this;
     }
     ChatRoom.prototype.componentDidMount = function () {
-        if (this.props.user) {
-            this.addUserToChatRoom(this.props.user);
+        var _this = this;
+        window.addEventListener('beforeunload', this.componentCleanup);
+        this.logoutBail();
+        // import utils after initial load
+        util = require('../util');
+        try {
+            if (this.props.chat)
+                dataStream = new EventSource("/api/stream/" + this.props.chat._id);
+            // when the connection is open stop loading
+            dataStream.onopen = function () {
+                _this.setState({ loading: false });
+                if (!enteredChat && _this.props.user) {
+                    _this.addUserToChatRoom();
+                }
+            };
+            dataStream.addEventListener('new-message', this.handleMessagesEvents);
+            dataStream.addEventListener('user-enter', this.handleUsersEvents);
+            dataStream.addEventListener('user-quit', this.handleUsersEvents);
         }
+        catch (err) {
+            throw err;
+        }
+    };
+    ChatRoom.prototype.componentWillUnmount = function () {
+        this.componentCleanup();
+        window.removeEventListener('beforeunload', this.componentCleanup);
+    };
+    ChatRoom.prototype.componentDidUpdate = function () {
+        if (!enteredChat && this.props.user) {
+            this.addUserToChatRoom();
+        }
+        this.ScrollDown();
     };
     ChatRoom.prototype.render = function () {
         if (this.props.chat && this.state.messages && this.state.users)
@@ -125,7 +228,7 @@ var ChatRoom = /** @class */ (function (_super) {
                                 this.state.users.length,
                                 " ",
                                 react_1.default.createElement("i", { className: "user icon" }))),
-                        react_1.default.createElement("div", { className: "chat-area", id: "scroll" },
+                        react_1.default.createElement("div", { className: this.state.loading ? 'ui loading form chat-area' : 'chat-area', id: "scroll" },
                             react_1.default.createElement("div", { className: "ui celled list", id: "messages-list" }, this.loadFetchedMessages()),
                             react_1.default.createElement("div", { style: { float: 'left', clear: 'both' }, ref: function (st) { scrollTarget = st; } })),
                         this.restrictGuests(this.props.user)))));

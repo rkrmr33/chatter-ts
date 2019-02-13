@@ -67,3 +67,58 @@ function createAccount(user) {
     });
 }
 exports.createAccount = createAccount;
+function login(_a) {
+    var username = _a.username, password = _a.password;
+    return axios_1.default.post('/api/users/login', { username: username, password: password })
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/login/" + username + "," + password, 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.login = login;
+function relogin() {
+    return axios_1.default.get('/api/users/current_user')
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/current_user", 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.relogin = relogin;
+function logout() {
+    return axios_1.default.get('/api/users/logout')
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/logout/", 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.logout = logout;
+function sendMessage(message) {
+    return axios_1.default.post('/api/messages/send', message)
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/messages/send/" + JSON.stringify(message), 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.sendMessage = sendMessage;
+function enterChat(username, chatId) {
+    return axios_1.default.post('/api/chats/enter', { username: username, chatId: chatId })
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/chat/enter/" + JSON.stringify({ username: username, chatId: chatId }), 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.enterChat = enterChat;
+function quitChat(username, chatId) {
+    return axios_1.default.post('/api/chats/quit', { username: username, chatId: chatId })
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/chat/quit/" + JSON.stringify({ username: username, chatId: chatId }), 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.quitChat = quitChat;

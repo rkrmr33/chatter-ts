@@ -60,12 +60,13 @@ export default class Signup extends React.Component<ISignupProps, ISignupState> 
           // user was successfuly created, now login..
           if(result.created) {
             formElement.setAttribute('class', 'ui form success');
-            this.props.login(result.user);
+            this.props.login({username: user.username, password: user.password});
           }
           // If there are server validation errors, display them
           else if (result.errors) { 
             const errors = result.errors;
             const formErrors = this.state.formErrors;
+            console.log(JSON.stringify(errors));
             Object.keys(errors).forEach(key => {
               formErrors[key] = errors[key].msg;
             });

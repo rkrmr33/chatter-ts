@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosResponse, AxiosPromise } from 'axios';
 import { response } from 'express';
+import { func } from 'prop-types';
 const loadProgressBar = require('axios-progress-bar').loadProgressBar;
 
 loadProgressBar({ showSpinner: false});
@@ -64,6 +65,60 @@ export function createAccount(user:IUser) : AxiosPromise {
       if (!handleBadFetchStatus(response, `${serverUrl}/api/users/create/${user}`, 'oops'))
         return response.data;
       return { created: false };
+    })
+}
+
+export function login({username, password} : {username: string, password: string}) : AxiosPromise {
+  return axios.post('/api/users/login', {username, password})
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/users/login/${username},${password}`, 'oops'))
+        return response.data;
+      return response.statusText;
+    })
+}
+
+export function relogin() : AxiosPromise {
+  return axios.get('/api/users/current_user')
+  .then(response => {
+    if (!handleBadFetchStatus(response, `${serverUrl}/api/users/current_user`, 'oops'))
+      return response.data;
+    return response.statusText;
+  })
+}
+
+export function logout() : AxiosPromise {
+  return axios.get('/api/users/logout')
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/users/logout/`, 'oops'))
+      return response.data;
+      return response.statusText;
+    })
+}
+
+export function sendMessage(message:IMessage) : AxiosPromise {
+  return axios.post('/api/messages/send', message)
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/messages/send/${JSON.stringify(message)}`, 'oops'))
+        return response.data;
+      return response.statusText;
+    })
+}
+
+export function enterChat(username:string, chatId:string) : AxiosPromise {
+  return axios.post('/api/chats/enter', {username, chatId})
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/chat/enter/${JSON.stringify({username, chatId})}`, 'oops'))
+        return response.data;
+      return response.statusText;
+    })
+}
+
+export function quitChat(username:string, chatId:string) : AxiosPromise {
+  return axios.post('/api/chats/quit', {username, chatId})
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/chat/quit/${JSON.stringify({username, chatId})}`, 'oops'))
+        return response.data;
+      return response.statusText;
     })
 }
 

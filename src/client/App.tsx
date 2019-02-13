@@ -1,5 +1,6 @@
 /// <reference path="./Components/interfaces.d.ts" />
 import React, { Component } from 'react';
+import { AxiosPromise } from 'axios';
 
 import Header from './Components/Header';
 import ChatList from './Components/ChatList';
@@ -30,7 +31,9 @@ class App extends Component<any, IAppState> {
     // Load utils and apply nProgress progress bar
     util = require('./util');
 
-    
+    // try to re-login user using the session token
+    this.relogin();
+
     // determain initial status and push it to the history state
     switch (this.state.display) {
       case Routes.MAIN:
@@ -102,12 +105,44 @@ class App extends Component<any, IAppState> {
       });
   }
 
-  login(user:IUser) {
-    console.log(user);
+  login = (credentials:any) : AxiosPromise => {
+    return util.login(credentials)
+      .then((result : any) => {
+        if (result.success) {
+          this.setState({ user: result.user },
+             () => this.loadMain());
+        }
+        return result;
+      })
   }
 
-  logout() {
+  logout = () : void => {
+    util.logout()
+      .then((result : boolean) => {
+        if(result) {
+          this.setState({ user: undefined }, () => {
+            this.loadMain();
+            history.replaceState(this.state, '');
+          })
+        }
+        else {
+          console.log('tried to logout with-out user token');
+        }
+      })
+  }
 
+  relogin = () : void => {
+    util.relogin()
+      .then((user : any) => {
+        if (!user) {
+          this.setState({ user: undefined }, () => {
+            history.replaceState(this.state, '');
+          });
+        }
+        this.setState({ user }, () => {
+          history.replaceState(this.state, '');
+        });
+      })
   }
 
   contentSwitch() {
@@ -126,11 +161,13 @@ class App extends Component<any, IAppState> {
         return (<Signup 
                   login={this.login}
                   goToLogin={this.loadLogin}
+                  goToChatter={this.loadMain}
                   />)
       case Routes.LOG_IN:        // route: '/login'
         return (<Login 
                   login={this.login}
                   goToSignup={this.loadSignup}
+                  goToChatter={this.loadMain}
                   />)
       default:
         return `Something went wrong, the initial data is: ${JSON.stringify(this.props.__INITIAL_DATA__)}`;

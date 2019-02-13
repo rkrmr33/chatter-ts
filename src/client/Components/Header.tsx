@@ -5,7 +5,7 @@ function isLoggedIn(props : IHeader) {
   if(props.user) {
     return (
       <div className="right menu">
-        <a className="item" onClick={props.logout}>Log out</a>
+        <a id="logout-btn" className="item" onClick={props.logout}>Log out</a>
         <a className="item">
           <div id="userLabel" className="ui horizontal label" style={{backgroundColor: `#${props.user.specialColor}`}}>{props.user.username}</div>
         </a>

@@ -10,5 +10,6 @@ export default {
   },
   AVATAR_API_URL: 'https://api.adorable.io/avatars/128/',
   RANDOM_COLOR_API: 'http://www.colr.org/json/color/random',
-  SECRET_KEY: 'puppins'
+  SECRET_KEY: 'puppins',
+  VERBAL: false
 }

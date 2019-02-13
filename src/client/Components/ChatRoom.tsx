@@ -1,8 +1,12 @@
 /// <reference path="./interfaces.d.ts" />
 import React, { ReactNode } from 'react';
 import Message from './Message';
+import { text } from 'body-parser';
 
 let scrollTarget : HTMLDivElement | null;
+let dataStream : any;
+let util : any;
+let enteredChat : boolean = false;
 
 class ChatRoom extends React.Component <IChatRoomProps, IChatRoomState>{
   constructor(props : IChatRoomProps) {
@@ -10,22 +14,142 @@ class ChatRoom extends React.Component <IChatRoomProps, IChatRoomState>{
 
     this.state = {
       messages: props.messages,
-      users: (props.chat as IChat).users
+      users: (props.chat as IChat).users,
+      loading: true
     }
+
+    enteredChat = false;
   }
 
   componentDidMount() {
-    if (this.props.user) {
-      this.addUserToChatRoom(this.props.user);
+
+    window.addEventListener('beforeunload', this.componentCleanup);
+
+    this.logoutBail();
+
+    // import utils after initial load
+    util = require('../util');
+
+    try {
+      if (this.props.chat)
+        dataStream = new EventSource(`/api/stream/${this.props.chat._id}`);
+      
+      // when the connection is open stop loading
+      dataStream.onopen = () => {
+        this.setState({loading: false});
+        if (!enteredChat && this.props.user) {
+          this.addUserToChatRoom();
+        }
+      }
+
+      dataStream.addEventListener('new-message', this.handleMessagesEvents);
+      dataStream.addEventListener('user-enter', this.handleUsersEvents);
+      dataStream.addEventListener('user-quit', this.handleUsersEvents);
+      
+    } catch (err) {
+      throw err;
     }
   }
 
-  addUserToChatRoom = (user : IUser) : void => {
-    return;
+  componentWillUnmount() {
+    this.componentCleanup();
+    window.removeEventListener('beforeunload', this.componentCleanup);
+  }
+
+  componentDidUpdate() {
+    if (!enteredChat && this.props.user) {
+      this.addUserToChatRoom();
+    }
+    this.ScrollDown();
+  }
+
+  componentCleanup = () => {
+    if (this.props.chat && this.props.user)
+    util.quitChat(this.props.user.username, this.props.chat._id)
+    if (dataStream) {
+      dataStream.close();
+    }
+  }
+
+  /***
+   *  if a user clicks on logout, handle the leave before the state cleans
+   **/
+  logoutBail = () => {
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', (e) => {
+        this.componentCleanup();
+      });
+    }
+  }
+
+  /**
+   *   EVENTS HANDLERS
+   */
+
+  // Handles Messages Events
+  handleMessagesEvents = (e : any) : void => {
+    const newMessage = JSON.parse(e.data) as IMessage;
+    const chatMessages = this.state.messages;
+    if (chatMessages && newMessage) {
+      chatMessages.push(newMessage);
+      this.setState({ messages: chatMessages })
+    }
+    
+  }
+
+  // Handles Users Events
+  handleUsersEvents = (e : any) : void => {
+    let users = this.state.users;
+
+    if (users) {
+      switch (e.type) {
+        case 'user-enter':
+          users.push(e.data);
+          break;
+        case 'user-quit':
+          users = users.filter(user => user !== e.data);
+          break;
+        default: break;
+      }
+
+      // update users list
+      this.setState({ users });
+    }
+
+  }
+
+  addUserToChatRoom = () : void => {
+    enteredChat = true;
+    if (this.props.user && this.props.chat)
+      util.enterChat(this.props.user.username, this.props.chat._id);
   };
 
-  sendMessage = () : void => {
-    return;
+  sendMessage = (e : any) : void => {
+    e.preventDefault();
+
+    const messageText = document.getElementById('messageText') as HTMLInputElement;
+
+    if (messageText && messageText.value && this.props.chat && this.props.user) {
+      const message = {
+        chatId: this.props.chat._id,
+        user: {
+          username: this.props.user.username,
+          specialColor: this.props.user.specialColor,
+          avatar: this.props.user.avatar
+        },
+        body: messageText.value,
+        votes: [],
+        timestamp: new Date()
+      };
+
+      util.sendMessage(message)
+        .then((sentMessage : any)=> {
+          if (sentMessage) {
+            messageText.value = '';
+          }
+        })
+    }
   };
 
   /**
@@ -64,7 +188,7 @@ class ChatRoom extends React.Component <IChatRoomProps, IChatRoomState>{
     if (user) {
       return (
 				<div className="ui action input" id="input-segment">
-					<input id="messageText" type="text" autoFocus/>
+					<input id="messageText" type="text" placeholder="Type a message..." autoFocus/>
 					<button type="submit" id="sendButton" className="ui blue button">Send</button>
 				</div>);
     }
@@ -107,7 +231,7 @@ class ChatRoom extends React.Component <IChatRoomProps, IChatRoomState>{
                 <div className="inChatUsersCount">{this.state.users.length} <i className="user icon"></i></div>
               </div>
 
-              <div className="chat-area" id="scroll">
+              <div className={this.state.loading ? 'ui loading form chat-area' : 'chat-area'} id="scroll">
                 <div className="ui celled list" id="messages-list">
                   { this.loadFetchedMessages() }
                 </div>

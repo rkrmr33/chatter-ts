@@ -8,7 +8,7 @@ var react_1 = __importDefault(require("react"));
 function isLoggedIn(props) {
     if (props.user) {
         return (react_1.default.createElement("div", { className: "right menu" },
-            react_1.default.createElement("a", { className: "item", onClick: props.logout }, "Log out"),
+            react_1.default.createElement("a", { id: "logout-btn", className: "item", onClick: props.logout }, "Log out"),
             react_1.default.createElement("a", { className: "item" },
                 react_1.default.createElement("div", { id: "userLabel", className: "ui horizontal label", style: { backgroundColor: "#" + props.user.specialColor } }, props.user.username))));
     }

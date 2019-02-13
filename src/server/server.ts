@@ -1,7 +1,5 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import passport from 'passport';
-import flash from 'express-flash';
 import session from 'express-session';
 const MongoStore = require('connect-mongo')(session);
 
@@ -24,8 +22,6 @@ server.use(session({
    resave: false,
    store: new MongoStore({ url: config.DB_CONN_STR })
   }));
-server.use(flash());
-server.use(passport.initialize());
 server.use(api);
 
 server.get(app_routes, (req, res) => {

@@ -5,8 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
 var body_parser_1 = __importDefault(require("body-parser"));
-var passport_1 = __importDefault(require("passport"));
-var express_flash_1 = __importDefault(require("express-flash"));
 var express_session_1 = __importDefault(require("express-session"));
 var MongoStore = require('connect-mongo')(express_session_1.default);
 var config_1 = __importDefault(require("./config"));
@@ -24,8 +22,6 @@ server.use(express_session_1.default({
     resave: false,
     store: new MongoStore({ url: config_1.default.DB_CONN_STR })
 }));
-server.use(express_flash_1.default());
-server.use(passport_1.default.initialize());
 server.use(api_1.default);
 server.get(app_routes, function (req, res) {
     serverRender_1.serverRender(req)

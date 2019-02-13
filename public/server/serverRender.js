@@ -108,7 +108,6 @@ function serverRender(req) {
 exports.serverRender = serverRender;
 // route: '/'
 function fetchMainPageData() {
-    console.log("requesting: " + config_1.default.endpoint + "/api/chats");
     return axios_1.default.get(config_1.default.endpoint + "/api/chats")
         .then(function (response) {
         if (handleBadFetchStatus(response, config_1.default.endpoint + "/api/chats")) {
@@ -131,7 +130,6 @@ function fetchMainPageData() {
 function fetchChatPageData(req) {
     var chatName = req.params.chatName;
     var endpoint = config_1.default.endpoint + "/api/chats/full/name/" + chatName;
-    console.log("requesting: " + endpoint);
     return axios_1.default.get(endpoint)
         .then(function (response) {
         if (handleBadFetchStatus(response, endpoint)) {

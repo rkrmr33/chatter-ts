@@ -14,6 +14,26 @@ export default class Login extends React.Component<ILoginProps, ILoginState> {
     }
   }
 
+  submit = ({username, password} : {username : string, password : string}) : void => {
+    const formElement = document.getElementById('loginForm');
+    const errors = this.state.errors;
+    
+    // attempt login
+    this.props.login({username, password})
+      .then((result : any) => {
+        // if login failed, display errors
+        if(result && result.success === false) { 
+          errors.result = result.error;
+          this.setState({errors}, () => {
+            if (formElement)
+              formElement.setAttribute('class', 'ui form error');
+          })
+        }
+
+        // if the login is successful, the user will be redirected to the main page
+      });
+  }
+
   validate = (e : any) => {
 		if(e) e.preventDefault();
 		
@@ -51,8 +71,9 @@ export default class Login extends React.Component<ILoginProps, ILoginState> {
 		
 		// if all is valid attempt password & username validation against the server
 		if(valid && formElement) {
-			formElement.setAttribute('class', 'ui loading form');
-			
+      formElement.setAttribute('class', 'ui loading form');
+      this.submit({username:username.value, password: password.value})
+      
 		}
 		else if (formElement) {
 			formElement.setAttribute('class', 'ui form error');

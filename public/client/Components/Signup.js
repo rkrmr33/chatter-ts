@@ -44,7 +44,7 @@ var Signup = /** @class */ (function (_super) {
                     formElement_1.setAttribute('class', 'ui loading form');
                 else
                     return;
-                var user = {
+                var user_1 = {
                     firstName: _this.state.firstName,
                     lastName: _this.state.lastName,
                     email: _this.state.email,
@@ -52,17 +52,18 @@ var Signup = /** @class */ (function (_super) {
                     password: _this.state.password1,
                 };
                 // Here we should check for any errors from the server-side-validation.
-                util.createAccount(user)
+                util.createAccount(user_1)
                     .then(function (result) {
                     // user was successfuly created, now login..
                     if (result.created) {
                         formElement_1.setAttribute('class', 'ui form success');
-                        _this.props.login(result.user);
+                        _this.props.login({ username: user_1.username, password: user_1.password });
                     }
                     // If there are server validation errors, display them
                     else if (result.errors) {
                         var errors_1 = result.errors;
                         var formErrors_1 = _this.state.formErrors;
+                        console.log(JSON.stringify(errors_1));
                         Object.keys(errors_1).forEach(function (key) {
                             formErrors_1[key] = errors_1[key].msg;
                         });
