@@ -40,6 +40,8 @@ interface IUser {
   password? : string;
   specialColor? : string;
   avatar? : string;
+  votes? : number;
+  cp? : number;
 }
 
 interface IMessage {

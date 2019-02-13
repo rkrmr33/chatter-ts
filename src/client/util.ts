@@ -86,6 +86,15 @@ export function relogin() : AxiosPromise {
   })
 }
 
+export function authenticate(userCredentials : any) : AxiosPromise {
+  return axios.get('/api/users/authenticate')
+  .then(response => {
+    if (!handleBadFetchStatus(response, `${serverUrl}/api/users/current_user`, 'oops'))
+      return response.data; // the authenticated user or undefined if the credentials were wrong
+    return response.statusText;
+  })
+}
+
 export function logout() : AxiosPromise {
   return axios.get('/api/users/logout')
     .then(response => {
@@ -117,6 +126,24 @@ export function quitChat(username:string, chatId:string) : AxiosPromise {
   return axios.post('/api/chats/quit', {username, chatId})
     .then(response => {
       if (!handleBadFetchStatus(response, `${serverUrl}/api/chat/quit/${JSON.stringify({username, chatId})}`, 'oops'))
+        return response.data;
+      return response.statusText;
+    })
+}
+
+export function newVote(message:IMessage, username:string) : AxiosPromise {
+  return axios.post('/api/messages/vote', {message, username})
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/messages/vote/${JSON.stringify({message, username})}`, 'oops'))
+        return response.data;
+      return response.statusText;
+    })
+}
+
+export function payCP(userId:string, amount:number) : AxiosPromise {
+  return axios.post('/api/users/pay', {userId, amount})
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/users/pay/${JSON.stringify({userId, amount})}`, 'oops'))
         return response.data;
       return response.statusText;
     })

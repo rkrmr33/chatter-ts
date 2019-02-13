@@ -60,6 +60,52 @@ body {
 	margin-bottom: -2px;
 }
 
+#userParentItem {
+	font-size: 1em !important;
+	height: 36px;
+	margin-top: auto;
+	margin-bottom: auto;
+	margin-right: 5px;
+	color: white;
+	cursor: default !important;
+}
+
+#userParentItem img{
+	margin-top: -9px !important;
+	margin-left: -8px !important;
+	margin-bottom: 0px !important;
+	width: 34px !important;
+	height: 36px !important;
+}
+
+#logout-btn{
+	cursor: pointer !important;
+}
+
+#logout-btn:hover{
+	color: #cacaca !important;
+}
+
+#userParentItem div{
+	font-size: 1em;
+	color: white;
+	height: 32px;
+	margin-top: -7px !important;
+	background: none;
+	opacity: 1 !important;
+	border-left: #ffffff6c solid 1px;
+}
+
+#userParentItem div i{
+	color: white;
+}
+
+#userParentItem div img{
+	width: 25px !important;
+	height: 25px !important;
+	margin-top: -5px !important;
+}
+
 
 /* --- CHAT PREVIEW LIST CSS --- */
 

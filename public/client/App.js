@@ -117,6 +117,19 @@ var App = /** @class */ (function (_super) {
                 });
             });
         };
+        _this.authenticate = function () {
+            util.authenticate()
+                .then(function (user) {
+                if (!user) {
+                    _this.setState({ user: undefined }, function () {
+                        history.replaceState(_this.state, '');
+                    });
+                }
+                _this.setState({ user: user }, function () {
+                    history.replaceState(_this.state, '');
+                });
+            });
+        };
         _this.state = props;
         return _this;
     }
@@ -125,7 +138,7 @@ var App = /** @class */ (function (_super) {
         // Load utils and apply nProgress progress bar
         util = require('./util');
         // try to re-login user using the session token
-        this.relogin();
+        this.authenticate();
         // determain initial status and push it to the history state
         switch (this.state.display) {
             case Routes.MAIN:

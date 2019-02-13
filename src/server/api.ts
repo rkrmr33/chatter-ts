@@ -88,6 +88,8 @@ router.post('/api/users/create',
 
   // assigning an avatar img url using the avatar api 
   user.avatar = config.AVATAR_API_URL + user.email;
+  user.votes = 0;
+  user.cp = 0;
 
   mdb.collection('users').findOne({ username: user.username })
     .then((foundUser : any) : any=> {
@@ -205,12 +207,18 @@ router.post('/api/users/login', (req : express.Request, res : express.Response) 
           return;
         }
 
-        // all is good, sending user object
-        jwt.sign(user, config.SECRET_KEY, (err : any, userToken : string) => {
+        let credentials = {
+          _id: user._id,
+          password: user.password
+        }
+
+        // all is good, sending user credetials object
+        jwt.sign(credentials, config.SECRET_KEY, (err : any, userToken : string) => {
           if (err) throw err;
           if (req.session) {
             req.session.userToken = userToken;
           }
+          delete user.password;
           res.send({success: true, user})
         })
       });
@@ -244,6 +252,49 @@ router.get('/api/users/current_user', (req : express.Request, res : express.Resp
       res.send(user);
     })
   }
+});
+
+// gets the request session user token and sends back the user object to store in the app state
+router.get('/api/users/authenticate', (req : express.Request, res : express.Response) => {
+
+  let userCredentials : any;
+
+  if (!req.session || !req.session.userToken) {
+    res.send(undefined);
+    return;
+  }
+  else {
+    jwt.verify(req.session.userToken, config.SECRET_KEY, (err : any, user : any) => {
+      if (err) throw err;
+      userCredentials = user;
+    })
+  }
+
+  if (!userCredentials) {
+    res.send(false);
+    return;
+  }
+
+  mdb.collection('users').findOne({ _id: new ObjectID(userCredentials._id) })
+    .then(result => {
+      if (!result) {
+        res.status(404).send(`user with id ${userCredentials._id} was not found.`);
+        return;
+      }
+
+      if (result.password !== userCredentials.password) {
+        res.status(400).send(undefined);
+        return;
+      }
+
+      delete result.password;
+
+      res.send(result);
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).send(false);
+    })
 });
 
 
@@ -439,6 +490,15 @@ router.get('/api/stream/:chatId', (req : express.Request, res : express.Response
     }
   });
 
+    // handles user quit chat
+  newVote.addListener('new-vote', (msg : IMessage) => {
+    if (chatId === msg.chatId) {
+      res.write('event: new-vote\n');
+      res.write(`data: ${JSON.stringify(msg)}`);
+      res.write('\n\n');
+    }
+  });
+
   // sets the client re-connection time to 1-sec 
   res.write('retry: 1000\n\n');
 });
@@ -581,7 +641,95 @@ router.post('/api/chats/quit', (req : express.Request, res : express.Response) =
 		});
 });
 
+// Adds a vote of [username] to [message] and updates receiving users vote
+router.post('/api/messages/vote', (req : express.Request, res : express.Response) => {
+  const message : IMessage = req.body.message;
+  const givingUsername = req.body.username;
 
+  if (!message || !givingUsername) {
+    res.status(400).send(`could not add vote from ${givingUsername} to message ${message}`);
+    return;
+  }
+
+  if (message.votes.indexOf(givingUsername) > -1) {
+    res.status(400).send(`${givingUsername} already gave a vote to message ${message}`);
+    return;
+  }
+
+  const gettingUsername = message.user.username;
+
+  mdb.collection('messages').updateOne(
+    { _id: new ObjectID(message._id)},
+    { $push: { votes: givingUsername }}
+    )
+    .then((result : any) : any => {
+      if(result.result.ok) { // added vote
+        
+        return mdb.collection('users').updateOne(
+          { username: gettingUsername },
+          { $inc: { votes: 1, cp: 1 }}  // increase the votes
+          );
+      }
+      else  // was unable to add vote
+        res.send(null);
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).send('Somthing went wrong');
+    })
+    .then((result: any) => {
+      if(result.result.ok) { // added vote
+        newVote.emit('new-vote', message)
+        res.status(200).send(true);
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).send('Somthing went wrong');
+    })
+});
+
+// takes [amount] ChatterPoints from [userId]
+router.post('/api/users/pay', (req : express.Request, res : express.Response) => {
+  const userId = req.body.userId;
+  const amount : number = req.body.amount;
+
+  if (!userId || !amount) {
+    res.status(400).send(`could not take ${amount} cp from ${userId}`);
+    return;
+  }
+  
+  mdb.collection('users').findOne({ _id: new ObjectID(userId) })
+    .then((result : any) : any => {
+      if (!result) {
+        res.status(404).send(`user with id ${userId} not found`);
+        return;
+      }
+
+      if (result.cp < amount) {
+        res.status(404).send(`user with id ${userId} has ${result.cp} cp but the amount needed is ${amount}`);
+        return;
+      }
+
+      return mdb.collection('users').updateOne(
+        { _id: new ObjectID(userId) },
+        { $inc: { cp: -amount }}
+        )
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).send('Somthing went wrong');
+    })
+    .then((result: any) => {
+      if(result.result.ok) { // taken cp
+        res.status(200).send(true);
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).send('Somthing went wrong');
+    })
+});
 
 
 

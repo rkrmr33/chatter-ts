@@ -86,6 +86,8 @@ router.post('/api/users/create',
     }
     // assigning an avatar img url using the avatar api 
     user.avatar = config_1.default.AVATAR_API_URL + user.email;
+    user.votes = 0;
+    user.cp = 0;
     mdb.collection('users').findOne({ username: user.username })
         .then(function (foundUser) {
         if (foundUser) {
@@ -192,13 +194,18 @@ router.post('/api/users/login', function (req, res) {
                 res.send({ success: false, error: 'Incorrect password.' });
                 return;
             }
-            // all is good, sending user object
-            jsonwebtoken_1.default.sign(user, config_1.default.SECRET_KEY, function (err, userToken) {
+            var credentials = {
+                _id: user._id,
+                password: user.password
+            };
+            // all is good, sending user credetials object
+            jsonwebtoken_1.default.sign(credentials, config_1.default.SECRET_KEY, function (err, userToken) {
                 if (err)
                     throw err;
                 if (req.session) {
                     req.session.userToken = userToken;
                 }
+                delete user.password;
                 res.send({ success: true, user: user });
             });
         });
@@ -229,6 +236,42 @@ router.get('/api/users/current_user', function (req, res) {
             res.send(user);
         });
     }
+});
+// gets the request session user token and sends back the user object to store in the app state
+router.get('/api/users/authenticate', function (req, res) {
+    var userCredentials;
+    if (!req.session || !req.session.userToken) {
+        res.send(undefined);
+        return;
+    }
+    else {
+        jsonwebtoken_1.default.verify(req.session.userToken, config_1.default.SECRET_KEY, function (err, user) {
+            if (err)
+                throw err;
+            userCredentials = user;
+        });
+    }
+    if (!userCredentials) {
+        res.send(false);
+        return;
+    }
+    mdb.collection('users').findOne({ _id: new mongodb_1.ObjectID(userCredentials._id) })
+        .then(function (result) {
+        if (!result) {
+            res.status(404).send("user with id " + userCredentials._id + " was not found.");
+            return;
+        }
+        if (result.password !== userCredentials.password) {
+            res.status(400).send(undefined);
+            return;
+        }
+        delete result.password;
+        res.send(result);
+    })
+        .catch(function (e) {
+        console.error(e);
+        res.status(500).send(false);
+    });
 });
 /**
  *    Chats data fetchers
@@ -409,6 +452,14 @@ router.get('/api/stream/:chatId', function (req, res) {
             res.write('\n\n');
         }
     });
+    // handles user quit chat
+    newVote.addListener('new-vote', function (msg) {
+        if (chatId === msg.chatId) {
+            res.write('event: new-vote\n');
+            res.write("data: " + JSON.stringify(msg));
+            res.write('\n\n');
+        }
+    });
     // sets the client re-connection time to 1-sec 
     res.write('retry: 1000\n\n');
 });
@@ -523,6 +574,77 @@ router.post('/api/chats/quit', function (req, res) {
         .catch(function (e) {
         console.error(e);
         res.status(404).send('Somthing went wrong');
+    });
+});
+// Adds a vote of [username] to [message] and updates receiving users vote
+router.post('/api/messages/vote', function (req, res) {
+    var message = req.body.message;
+    var givingUsername = req.body.username;
+    if (!message || !givingUsername) {
+        res.status(400).send("could not add vote from " + givingUsername + " to message " + message);
+        return;
+    }
+    if (message.votes.indexOf(givingUsername) > -1) {
+        res.status(400).send(givingUsername + " already gave a vote to message " + message);
+        return;
+    }
+    var gettingUsername = message.user.username;
+    mdb.collection('messages').updateOne({ _id: new mongodb_1.ObjectID(message._id) }, { $push: { votes: givingUsername } })
+        .then(function (result) {
+        if (result.result.ok) { // added vote
+            return mdb.collection('users').updateOne({ username: gettingUsername }, { $inc: { votes: 1, cp: 1 } } // increase the votes
+            );
+        }
+        else // was unable to add vote
+            res.send(null);
+    })
+        .catch(function (e) {
+        console.error(e);
+        res.status(500).send('Somthing went wrong');
+    })
+        .then(function (result) {
+        if (result.result.ok) { // added vote
+            newVote.emit('new-vote', message);
+            res.status(200).send(true);
+        }
+    })
+        .catch(function (e) {
+        console.error(e);
+        res.status(500).send('Somthing went wrong');
+    });
+});
+// takes [amount] ChatterPoints from [userId]
+router.post('/api/users/pay', function (req, res) {
+    var userId = req.body.userId;
+    var amount = req.body.amount;
+    if (!userId || !amount) {
+        res.status(400).send("could not take " + amount + " cp from " + userId);
+        return;
+    }
+    mdb.collection('users').findOne({ _id: new mongodb_1.ObjectID(userId) })
+        .then(function (result) {
+        if (!result) {
+            res.status(404).send("user with id " + userId + " not found");
+            return;
+        }
+        if (result.cp < amount) {
+            res.status(404).send("user with id " + userId + " has " + result.cp + " cp but the amount needed is " + amount);
+            return;
+        }
+        return mdb.collection('users').updateOne({ _id: new mongodb_1.ObjectID(userId) }, { $inc: { cp: -amount } });
+    })
+        .catch(function (e) {
+        console.error(e);
+        res.status(500).send('Somthing went wrong');
+    })
+        .then(function (result) {
+        if (result.result.ok) { // taken cp
+            res.status(200).send(true);
+        }
+    })
+        .catch(function (e) {
+        console.error(e);
+        res.status(500).send('Somthing went wrong');
     });
 });
 exports.default = router;

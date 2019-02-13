@@ -2,13 +2,21 @@
 import React from 'react';
 
 function isLoggedIn(props : IHeader) {
+  /* 
+  <img className="ui avatar image" src={props.user.avatar} id="userImg" />
+  <div id="userLabel" className="ui horizontal label" style={{backgroundColor: `#${props.user.specialColor}`}}>{props.user.username}</div>
+  <a id="logout-btn" className="item" onClick={props.logout}>Log out</a>
+  */
   if(props.user) {
     return (
       <div className="right menu">
-        <a id="logout-btn" className="item" onClick={props.logout}>Log out</a>
-        <a className="item">
-          <div id="userLabel" className="ui horizontal label" style={{backgroundColor: `#${props.user.specialColor}`}}>{props.user.username}</div>
-        </a>
+          <a className="ui image label" id="userParentItem" style={{backgroundColor: `#${props.user.specialColor}`}}>
+            <img src={props.user.avatar} />
+            {props.user.username}
+            <div className="detail"><img src="/CP.png"/> {props.user.cp}</div>
+            <div className="detail"><i className="icon thumbs up outline"></i> {props.user.votes}</div>
+            <div id="logout-btn" className="detail" onClick={props.logout}>Log out</div>
+          </a>
       </div>
     );
   }

@@ -32,7 +32,7 @@ class App extends Component<any, IAppState> {
     util = require('./util');
 
     // try to re-login user using the session token
-    this.relogin();
+    this.authenticate();
 
     // determain initial status and push it to the history state
     switch (this.state.display) {
@@ -133,6 +133,20 @@ class App extends Component<any, IAppState> {
 
   relogin = () : void => {
     util.relogin()
+      .then((user : any) => {
+        if (!user) {
+          this.setState({ user: undefined }, () => {
+            history.replaceState(this.state, '');
+          });
+        }
+        this.setState({ user }, () => {
+          history.replaceState(this.state, '');
+        });
+      })
+  }
+
+  authenticate = () : void => {
+    util.authenticate()
       .then((user : any) => {
         if (!user) {
           this.setState({ user: undefined }, () => {
