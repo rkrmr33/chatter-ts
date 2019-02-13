@@ -412,6 +412,39 @@ router.get('/api/stream/:chatId', function (req, res) {
     // sets the client re-connection time to 1-sec 
     res.write('retry: 1000\n\n');
 });
+// Main page chat event stream
+router.get('/api/stream/all_chats/:chatIds', function (req, res) {
+    var chatIdsList = req.params.chatIds.split(',');
+    res.writeHead(200, {
+        Connection: 'keep-alive',
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*'
+    });
+    // handles user enter chat
+    newUser.addListener('user-enter', function (username, _id) {
+        if (chatIdsList.indexOf(_id) > -1) {
+            res.write('event: user-enter\n');
+            res.write('data: { \n');
+            res.write("data: \"username\" : \"" + username + "\",\n");
+            res.write("data: \"chatId\" : \"" + _id + "\"\n");
+            res.write('data: } \n\n');
+            res.write('\n\n');
+        }
+    });
+    // handles user quit chat
+    newUser.addListener('user-quit', function (username, _id) {
+        if (chatIdsList.indexOf(_id) > -1) {
+            res.write('event: user-quit\n');
+            res.write('data: { \n');
+            res.write("data: \"username\" : \"" + username + "\",\n");
+            res.write("data: \"chatId\" : \"" + _id + "\"\n");
+            res.write('data: } \n\n');
+        }
+    });
+    // sets the client re-connection time to 5-sec 
+    res.write('retry: 5000\n\n');
+});
 // Sends a messages to the db
 router.post('/api/messages/send', function (req, res) {
     var message = req.body;

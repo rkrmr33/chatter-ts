@@ -51,8 +51,12 @@ interface IMessage {
   timestamp : string;
 }
 
-interface IChatList {
+interface IChatListProps {
   onChatClick(chatId : string) : void;
+  chatList : any;
+}
+
+interface IChatListState {
   chatList : any;
 }
 
