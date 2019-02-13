@@ -256,7 +256,7 @@ router.get('/api/users/current_user', (req : express.Request, res : express.Resp
 
 // gets the request session user token and sends back the user object to store in the app state
 router.get('/api/users/authenticate', (req : express.Request, res : express.Response) => {
-
+  console.log(req);
   let userCredentials : any;
 
   if (!req.session || !req.session.userToken) {
@@ -460,7 +460,7 @@ router.get('/api/stream/:chatId', (req : express.Request, res : express.Response
 		Connection: 'keep-alive',
 		'Content-Type': 'text/event-stream',
 		'Cache-Control': 'no-cache',
-		'Access-Control-Allow-Origin': '*'
+    'Access-Control-Allow-Origin': '*'
   });
   
   // handles new messages
