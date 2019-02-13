@@ -240,8 +240,6 @@ router.get('/api/users/current_user', function (req, res) {
 // gets the request session user token and sends back the user object to store in the app state
 router.get('/api/users/authenticate', function (req, res) {
     var userCredentials;
-    if (req.session)
-        console.log(req.session.userToken);
     if (!req.session || !req.session.userToken) {
         res.send(false);
         return;
@@ -570,7 +568,7 @@ router.post('/api/chats/quit', function (req, res) {
             setTimeout(function () {
                 newUser.emit('user-quit', username, chatId);
                 res.status(200).send(true);
-            }, 1000);
+            }, 500);
         }
         else
             res.status(400).send(false);

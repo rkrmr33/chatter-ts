@@ -258,9 +258,6 @@ router.get('/api/users/current_user', (req : express.Request, res : express.Resp
 router.get('/api/users/authenticate', (req : express.Request, res : express.Response) => {
   let userCredentials : any;
   
-  if(req.session)
-    console.log(req.session.userToken);
-
   if (!req.session || !req.session.userToken) {
     res.send(false);
     return;
@@ -632,10 +629,10 @@ router.post('/api/chats/quit', (req : express.Request, res : express.Response) =
 		{ $pull: { users: username } }
 	).then(result => {
     if(result && result.ok && result.ok == 1) { // user quit
-      setTimeout(()=>{
+      setTimeout(()=>{  // sets a delay to allow the all_chats stream to start first
         newUser.emit('user-quit', username, chatId)
         res.status(200).send(true);
-      },1000);
+      }, 500);
     }
 		else
 			res.status(400).send(false);
