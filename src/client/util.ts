@@ -77,14 +77,7 @@ export function login({username, password} : {username: string, password: string
     })
 }
 
-export function relogin() : AxiosPromise {
-  return axios.get('/api/users/current_user')
-  .then(response => {
-    if (!handleBadFetchStatus(response, `${serverUrl}/api/users/current_user`, 'oops'))
-      return response.data;
-    return response.statusText;
-  })
-}
+
 
 export function authenticate(userCredentials : any) : AxiosPromise {
   return axios.get('/api/users/authenticate')

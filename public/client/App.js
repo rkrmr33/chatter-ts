@@ -32,6 +32,7 @@ var Signup_1 = __importDefault(require("./Components/Signup"));
 var Login_1 = __importDefault(require("./Components/Login"));
 // utils file will be imported once the document has been defined
 var util;
+var votesEventSource;
 var Routes;
 (function (Routes) {
     Routes[Routes["MAIN"] = 0] = "MAIN";
@@ -104,19 +105,6 @@ var App = /** @class */ (function (_super) {
                 }
             });
         };
-        _this.relogin = function () {
-            util.relogin()
-                .then(function (user) {
-                if (!user) {
-                    _this.setState({ user: undefined }, function () {
-                        history.replaceState(_this.state, '');
-                    });
-                }
-                _this.setState({ user: user }, function () {
-                    history.replaceState(_this.state, '');
-                });
-            });
-        };
         _this.authenticate = function () {
             util.authenticate()
                 .then(function (user) {
@@ -125,10 +113,26 @@ var App = /** @class */ (function (_super) {
                         history.replaceState(_this.state, '');
                     });
                 }
-                _this.setState({ user: user }, function () {
-                    history.replaceState(_this.state, '');
-                });
+                else {
+                    _this.setState({ user: user }, function () {
+                        history.replaceState(_this.state, '');
+                        if (_this.state.user) {
+                            votesEventSource = new EventSource("/api/stream/users/" + _this.state.user.username);
+                            votesEventSource.addEventListener('new-vote', _this.handleUserGainedVotes);
+                        }
+                    });
+                }
             });
+        };
+        _this.handleUserGainedVotes = function (e) {
+            var currentUser = _this.state.user;
+            if (currentUser) {
+                currentUser.cp = currentUser.cp + 1;
+                currentUser.votes = currentUser.votes + 1;
+                _this.setState({
+                    user: currentUser
+                });
+            }
         };
         _this.state = props;
         return _this;

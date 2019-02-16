@@ -45,6 +45,7 @@ class ChatRoom extends React.Component <IChatRoomProps, IChatRoomState>{
       dataStream.addEventListener('new-message', this.handleMessagesEvents);
       dataStream.addEventListener('user-enter', this.handleUsersEvents);
       dataStream.addEventListener('user-quit', this.handleUsersEvents);
+      dataStream.addEventListener('new-vote', this.handleVotesEvents);
       
     } catch (err) {
       throw err;
@@ -89,10 +90,10 @@ class ChatRoom extends React.Component <IChatRoomProps, IChatRoomState>{
 
   // Handles Messages Events
   handleMessagesEvents = (e : any) : void => {
-    const newMessage = JSON.parse(e.data) as IMessage;
+    const newMessage = JSON.parse(e.data);
     const chatMessages = this.state.messages;
     if (chatMessages && newMessage) {
-      chatMessages.push(newMessage);
+      chatMessages[newMessage._id] = newMessage;
       this.setState({ messages: chatMessages })
     }
     
@@ -117,6 +118,13 @@ class ChatRoom extends React.Component <IChatRoomProps, IChatRoomState>{
       this.setState({ users });
     }
 
+  }
+
+  handleVotesEvents = (e : any) : void => {0
+    let data = JSON.parse(e.data); // { _id - message id, username - username that voted }
+    
+    this.state.messages[data._id].votes.push(data.username);
+    this.forceUpdate();
   }
 
   addUserToChatRoom = () : void => {
@@ -152,17 +160,25 @@ class ChatRoom extends React.Component <IChatRoomProps, IChatRoomState>{
     }
   };
 
+  addVote = (message : IMessage) : void => {
+    if (util && this.props.user) {
+      util.newVote(message, this.props.user.username) // promise
+    }
+  }
+
   /**
    * This function grabs all the messages we fetched from the
    * db, related to this chat-room id, and then displays them
    * all. If there are not messages at all, display a default
    * message.
    */
-  loadFetchedMessages = () : ReactNode => {
-    if(this.props.chat && (!this.state.messages || this.state.messages.length == 0)) {
+  renderMessages = () : ReactNode => {
+    if(this.props.chat && (!this.state.messages || Object.keys(this.state.messages).length == 0)) {
       // if there are no messages in the chat, sends a default message inviting people to chat.
-			return (<Message 
-				{...{
+      return (<Message 
+        voteMessage={this.addVote}
+        currentUser={undefined}
+				message={{
 					_id: '1234567890',
 					chatId: this.props.chat._id,
 					user: { username: 'Chatter Bot', specialColor:'#be28d2', avatar: '/chatter-icon.ico'},
@@ -174,7 +190,7 @@ class ChatRoom extends React.Component <IChatRoomProps, IChatRoomState>{
       }
       // if there are any messages fetched from the db, loads them and display in the chat.
 			else if (this.state.messages) {
-				const messagesMarkup = this.state.messages.map(m => <Message key={m._id} {...m}/>);
+				const messagesMarkup = Object.keys(this.state.messages).map((id: any) => <Message voteMessage={this.addVote} key={id} message={this.state.messages[id]} currentUser={this.props.user}/>);
 				return messagesMarkup;
 			}
   }
@@ -227,13 +243,13 @@ class ChatRoom extends React.Component <IChatRoomProps, IChatRoomState>{
                   </h3>
                   <p><i className="certificate icon chatter-color"></i><b>{this.props.chat.chatOwner}</b></p>
                 </div>
-                <div className="messagesCount">{this.state.messages.length} <i className="envelope icon"></i></div>
+                <div className="messagesCount">{Object.keys(this.state.messages).length} <i className="envelope icon"></i></div>
                 <div className="inChatUsersCount">{this.state.users.length} <i className="user icon"></i></div>
               </div>
 
               <div className={this.state.loading ? 'ui loading form chat-area' : 'chat-area'} id="scroll">
                 <div className="ui celled list" id="messages-list">
-                  { this.loadFetchedMessages() }
+                  { this.renderMessages() }
                 </div>
                 <div style={{float:'left', clear:'both'}} ref={ st => { scrollTarget = st } }></div>
               </div>

@@ -77,15 +77,6 @@ function login(_a) {
     });
 }
 exports.login = login;
-function relogin() {
-    return axios_1.default.get('/api/users/current_user')
-        .then(function (response) {
-        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/current_user", 'oops'))
-            return response.data;
-        return response.statusText;
-    });
-}
-exports.relogin = relogin;
 function authenticate(userCredentials) {
     return axios_1.default.get('/api/users/authenticate')
         .then(function (response) {

@@ -1,6 +1,6 @@
 import assert from 'assert';
 import express from 'express';
-import mongodb, { ObjectID, MongoError } from 'mongodb';
+import mongodb, { ObjectID, MongoError, GridFSBucket, GridFSBucketWriteStream } from 'mongodb';
 import axios from 'axios';
 import { check, validationResult } from 'express-validator/check';
 import bcrypt from 'bcrypt';
@@ -315,6 +315,12 @@ router.get('/api/chats', (req : express.Request, res) => {
         console.error(`[-] Assertion Error: ${e}`);
         res.send('no chats found').status(404);
       }
+
+      chatsArray.sort((a,b) => {
+        return b.users.length - a.users.length;
+      })
+
+      // format data to a dictionary stracture
       chatsArray.forEach(chat => {
         chats[chat._id] = chat;
       });
@@ -358,8 +364,9 @@ router.get('/api/chats/full/id/:chatId', (req : express.Request, res) => {
         res.sendStatus(404) // chat not found
         return;
       }
+      let messages : any = {};
       mdb.collection('messages').find({ chatId })
-        .toArray((err : MongoError, messages) => {
+        .toArray((err : MongoError, messagesArray) => {
           try {
             assert.equal(null, err);
           } catch(e) {
@@ -367,6 +374,12 @@ router.get('/api/chats/full/id/:chatId', (req : express.Request, res) => {
             res.send([]).status(404);
             return;
           }
+
+          // format data to a dictionary stracture
+          messagesArray.forEach(message => {
+            messages[message._id] = message
+          });
+
           res.send({
             currentChat: chat,
             messages
@@ -397,15 +410,22 @@ router.get('/api/chats/full/name/:chatName', (req : express.Request, res) => {
 
       // find messages of the chat
       const chatId = chat._id; 
+      let messages : any = {};
       mdb.collection('messages').find({ chatId: chatId.toString() })
-        .toArray((err : MongoError, messages) => {
+        .toArray((err : MongoError, messagesArray) => {
           try {
             assert.equal(null, err);
           } catch(e) {
             console.error(`[-] Assertion Error: ${e}`);
-            res.send([]).status(404);
+            res.send(false).status(404);
             return;
           }
+
+          // format data to a dictionary stracture
+          messagesArray.forEach(message => {
+            messages[message._id] = message
+          });
+
           res.send({
             currentChat: chat,
             messages
@@ -490,11 +510,14 @@ router.get('/api/stream/:chatId', (req : express.Request, res : express.Response
     }
   });
 
-    // handles user quit chat
-  newVote.addListener('new-vote', (msg : IMessage) => {
+  // handles user quit chat
+  newVote.addListener('new-vote', (msg : IMessage, givingUsername : string, gettingUsername : string) => {
     if (chatId === msg.chatId) {
       res.write('event: new-vote\n');
-      res.write(`data: ${JSON.stringify(msg)}`);
+      res.write('data: { \n');
+      res.write(`data: "_id" : "${msg._id}",\n`);
+      res.write(`data: "username" : "${givingUsername}"\n`);
+      res.write('data: } \n\n');
       res.write('\n\n');
     }
   });
@@ -502,6 +525,31 @@ router.get('/api/stream/:chatId', (req : express.Request, res : express.Response
   // sets the client re-connection time to 1-sec 
   res.write('retry: 1000\n\n');
 });
+
+// users vote event stream
+router.get('/api/stream/users/:username', (req : express.Request, res : express.Response) => {
+  const username = req.params.username;
+
+  res.writeHead(200, {
+    Connection: 'keep-alive',
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  // handles user quit chat
+  newVote.addListener('new-vote', (msg : IMessage, givingUsername : string, gettingUsername : string) => {
+    if (username === gettingUsername) {
+      res.write('event: new-vote\n');
+      res.write(`data: ${gettingUsername}`);
+      res.write('\n\n');
+    }
+  });
+
+  // sets the client re-connection time to 1-sec 
+  res.write('retry: 1000\n\n');
+})
+
 
 // Main page chat event stream
 router.get('/api/stream/all_chats/:chatIds', (req : express.Request, res : express.Response) => {
@@ -681,7 +729,7 @@ router.post('/api/messages/vote', (req : express.Request, res : express.Response
     })
     .then((result: any) => {
       if(result.result.ok) { // added vote
-        newVote.emit('new-vote', message)
+        newVote.emit('new-vote', message, givingUsername, gettingUsername)
         res.status(200).send(true);
       }
     })

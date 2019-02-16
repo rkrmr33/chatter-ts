@@ -49,8 +49,14 @@ interface IMessage {
   chatId : string;
   user : IUser;
   body : string;
-  votes : Array<IUser>;
+  votes : Array<string>;
   timestamp : string;
+}
+
+interface IMessageProps {
+  message: IMessage;
+  currentUser: IUser | undefined;
+  voteMessage(message : IMessage | undefined) : void;
 }
 
 interface IChatListProps {
@@ -72,14 +78,14 @@ interface IChatRoomProps {
   chat? : IChat | null;
   user? : IUser;
   users? : Array<IUser>;
-  messages? : Array<IMessage>;
+  messages? : any;
   goToLogin() : void;
   goToSignup() : void;
 }
 
 interface IChatRoomState {
   users? : Array<IUser>;
-  messages? : Array<IMessage>;
+  messages? : any;
   loading? : boolean;
 }
 

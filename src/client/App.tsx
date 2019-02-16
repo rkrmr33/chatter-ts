@@ -11,6 +11,7 @@ import Login from './Components/Login';
 
 // utils file will be imported once the document has been defined
 let util : any;
+let votesEventSource : any;
 
 export enum Routes{
   MAIN = 0,
@@ -131,20 +132,6 @@ class App extends Component<any, IAppState> {
       })
   }
 
-  relogin = () : void => {
-    util.relogin()
-      .then((user : any) => {
-        if (!user) {
-          this.setState({ user: undefined }, () => {
-            history.replaceState(this.state, '');
-          });
-        }
-        this.setState({ user }, () => {
-          history.replaceState(this.state, '');
-        });
-      })
-  }
-
   authenticate = () : void => {
     util.authenticate()
       .then((user : any) => {
@@ -153,10 +140,28 @@ class App extends Component<any, IAppState> {
             history.replaceState(this.state, '');
           });
         }
-        this.setState({ user }, () => {
-          history.replaceState(this.state, '');
-        });
+        else {
+          this.setState({ user }, () => {
+            history.replaceState(this.state, '');
+            if (this.state.user) {
+              votesEventSource = new EventSource(`/api/stream/users/${this.state.user.username}`);
+              votesEventSource.addEventListener('new-vote', this.handleUserGainedVotes);
+            }
+          });
+        }
       })
+  }
+
+  handleUserGainedVotes = (e : any) : void => {
+
+    const currentUser = this.state.user;
+    if (currentUser) {
+      currentUser.cp = currentUser.cp as any + 1;
+      currentUser.votes = currentUser.votes as any + 1;
+      this.setState({
+        user: currentUser
+      });
+    }
   }
 
   contentSwitch() {

@@ -289,6 +289,10 @@ router.get('/api/chats', function (req, res) {
             console.error("[-] Assertion Error: " + e);
             res.send('no chats found').status(404);
         }
+        chatsArray.sort(function (a, b) {
+            return b.users.length - a.users.length;
+        });
+        // format data to a dictionary stracture
         chatsArray.forEach(function (chat) {
             chats[chat._id] = chat;
         });
@@ -331,8 +335,9 @@ router.get('/api/chats/full/id/:chatId', function (req, res) {
             res.sendStatus(404); // chat not found
             return;
         }
+        var messages = {};
         mdb.collection('messages').find({ chatId: chatId })
-            .toArray(function (err, messages) {
+            .toArray(function (err, messagesArray) {
             try {
                 assert_1.default.equal(null, err);
             }
@@ -341,6 +346,10 @@ router.get('/api/chats/full/id/:chatId', function (req, res) {
                 res.send([]).status(404);
                 return;
             }
+            // format data to a dictionary stracture
+            messagesArray.forEach(function (message) {
+                messages[message._id] = message;
+            });
             res.send({
                 currentChat: chat,
                 messages: messages
@@ -368,16 +377,21 @@ router.get('/api/chats/full/name/:chatName', function (req, res) {
         }
         // find messages of the chat
         var chatId = chat._id;
+        var messages = {};
         mdb.collection('messages').find({ chatId: chatId.toString() })
-            .toArray(function (err, messages) {
+            .toArray(function (err, messagesArray) {
             try {
                 assert_1.default.equal(null, err);
             }
             catch (e) {
                 console.error("[-] Assertion Error: " + e);
-                res.send([]).status(404);
+                res.send(false).status(404);
                 return;
             }
+            // format data to a dictionary stracture
+            messagesArray.forEach(function (message) {
+                messages[message._id] = message;
+            });
             res.send({
                 currentChat: chat,
                 messages: messages
@@ -453,10 +467,33 @@ router.get('/api/stream/:chatId', function (req, res) {
         }
     });
     // handles user quit chat
-    newVote.addListener('new-vote', function (msg) {
+    newVote.addListener('new-vote', function (msg, givingUsername, gettingUsername) {
         if (chatId === msg.chatId) {
             res.write('event: new-vote\n');
-            res.write("data: " + JSON.stringify(msg));
+            res.write('data: { \n');
+            res.write("data: \"_id\" : \"" + msg._id + "\",\n");
+            res.write("data: \"username\" : \"" + givingUsername + "\"\n");
+            res.write('data: } \n\n');
+            res.write('\n\n');
+        }
+    });
+    // sets the client re-connection time to 1-sec 
+    res.write('retry: 1000\n\n');
+});
+// users vote event stream
+router.get('/api/stream/users/:username', function (req, res) {
+    var username = req.params.username;
+    res.writeHead(200, {
+        Connection: 'keep-alive',
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*'
+    });
+    // handles user quit chat
+    newVote.addListener('new-vote', function (msg, givingUsername, gettingUsername) {
+        if (username === gettingUsername) {
+            res.write('event: new-vote\n');
+            res.write("data: " + gettingUsername);
             res.write('\n\n');
         }
     });
@@ -606,7 +643,7 @@ router.post('/api/messages/vote', function (req, res) {
     })
         .then(function (result) {
         if (result.result.ok) { // added vote
-            newVote.emit('new-vote', message);
+            newVote.emit('new-vote', message, givingUsername, gettingUsername);
             res.status(200).send(true);
         }
     })

@@ -227,10 +227,44 @@ body {
 
 
 /* --- COMMENTS STYLING --- */
+.chat-image {
+	float: left !important;
+}
 
 .metadata {
 	font-size: 0.75em;
-	color: #616161
+	color: #616161;
+	padding-left: 32px;
+	margin-top: 3px;
+}
+
+.message-item {
+	cursor: pointer;
+}
+
+#hide {
+	display: none;
+}
+
+.message-item:active {
+	background-color: #be28d2 !important;
+}
+
+.message-item:hover #vote-option{
+	display: block !important;
+}
+
+.message-item:hover #vote-counter{
+	display: none !important;
+}
+
+#vote-option {
+	display: none;
+}
+
+#vote-counter {
+	display: block;
+	float: right;
 }
 
 #messages-list .item:hover {
@@ -241,6 +275,16 @@ body {
 #commentUser {
 	color: white;
 }
+
+.votes.info {
+	float: right;
+	
+}
+
+.message-content{
+	overflow-x: auto;
+}
+
 
 /* --- REGISTRATION STYLING --- */
 #registrationDiv {
