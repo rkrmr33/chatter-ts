@@ -12,8 +12,8 @@ export default function Message (props : IMessageProps) {
             </div>
 						{ new Date(props.message.timestamp).toLocaleTimeString() }
 						
-					<span id="vote-option" className="votes info"><i className="plus icon"></i>1</span>
-					<a id="vote-counter" className="ui label">{props.message.votes.length}</a>
+					<span id="vote-option" className="votes info"><a className="ui label"><i className="plus icon"></i><b>1</b></a></span>
+					<a id="vote-counter" className="ui label"><i className="icon thumbs up outline"></i>{props.message.votes.length}</a>
 				</div>
 				<div className="content message-content">
 						{ props.message.body }

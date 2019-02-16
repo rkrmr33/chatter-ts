@@ -13,9 +13,12 @@ function Message(props) {
             react_1.default.createElement("div", { className: "ui horizontal label", id: "commentUser", style: { backgroundColor: props.message.user.specialColor } }, props.message.user.username),
             new Date(props.message.timestamp).toLocaleTimeString(),
             react_1.default.createElement("span", { id: "vote-option", className: "votes info" },
-                react_1.default.createElement("i", { className: "plus icon" }),
-                "1"),
-            react_1.default.createElement("a", { id: "vote-counter", className: "ui label" }, props.message.votes.length)),
+                react_1.default.createElement("a", { className: "ui label" },
+                    react_1.default.createElement("i", { className: "plus icon" }),
+                    react_1.default.createElement("b", null, "1"))),
+            react_1.default.createElement("a", { id: "vote-counter", className: "ui label" },
+                react_1.default.createElement("i", { className: "icon thumbs up outline" }),
+                props.message.votes.length)),
         react_1.default.createElement("div", { className: "content message-content" }, props.message.body)));
 }
 exports.default = Message;

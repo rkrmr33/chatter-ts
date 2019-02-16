@@ -281,6 +281,11 @@ body {
 	
 }
 
+.votes.info a {
+	background-color: #a822b9 !important;
+	color: white;
+}
+
 .message-content{
 	overflow-x: auto;
 }

@@ -61,6 +61,12 @@ var ChatList = /** @class */ (function (_super) {
             console.error(e);
         }
     };
+    // update new chat list on parent app update
+    ChatList.prototype.componentWillReceiveProps = function (nextProps) {
+        this.setState({
+            chatList: nextProps.chatList
+        });
+    };
     ChatList.prototype.render = function () {
         var _this = this;
         return (react_1.default.createElement("div", { className: "ui celled list nine wide column", id: "mainDiv" }, Object.keys(this.state.chatList).map(function (chatId) { return react_1.default.createElement(ChatPreview_1.default, { key: chatId, onChatClick: _this.props.onChatClick, chat: _this.state.chatList[chatId] }); })));
