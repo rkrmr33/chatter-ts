@@ -139,6 +139,9 @@ var App = /** @class */ (function (_super) {
     }
     App.prototype.componentDidMount = function () {
         var _this = this;
+        window.onfocus = function () {
+            _this.forceUpdate();
+        };
         // Load utils and apply nProgress progress bar
         util = require('./util');
         // try to re-login user using the session token

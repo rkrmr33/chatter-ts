@@ -29,6 +29,10 @@ class App extends Component<any, IAppState> {
 
   componentDidMount() {
 
+    window.onfocus = () => {
+      this.forceUpdate();
+    };
+
     // Load utils and apply nProgress progress bar
     util = require('./util');
 
