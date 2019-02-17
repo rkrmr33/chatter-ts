@@ -14,6 +14,12 @@ export default class Login extends React.Component<ILoginProps, ILoginState> {
     }
   }
 
+	componentWillReceiveProps(nextProps : ILoginProps) {
+		if (nextProps.user) { // if already signed in than go back to main page
+			this.props.goToChatter();
+		}
+	}
+
   submit = ({username, password} : {username : string, password : string}) : void => {
     const formElement = document.getElementById('loginForm');
     const errors = this.state.errors;

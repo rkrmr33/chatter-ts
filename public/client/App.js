@@ -30,6 +30,7 @@ var ChatList_1 = __importDefault(require("./Components/ChatList"));
 var ChatRoom_1 = __importDefault(require("./Components/ChatRoom"));
 var Signup_1 = __importDefault(require("./Components/Signup"));
 var Login_1 = __importDefault(require("./Components/Login"));
+var ChatCreation_1 = __importDefault(require("./Components/ChatCreation"));
 // utils file will be imported once the document has been defined
 var util;
 var votesEventSource;
@@ -39,6 +40,7 @@ var Routes;
     Routes[Routes["CHAT_ROOM"] = 1] = "CHAT_ROOM";
     Routes[Routes["SIGN_UP"] = 2] = "SIGN_UP";
     Routes[Routes["LOG_IN"] = 3] = "LOG_IN";
+    Routes[Routes["CHAT_CREATION"] = 4] = "CHAT_CREATION";
 })(Routes = exports.Routes || (exports.Routes = {}));
 var App = /** @class */ (function (_super) {
     __extends(App, _super);
@@ -64,7 +66,10 @@ var App = /** @class */ (function (_super) {
                     currentChat: result.currentChat,
                     messages: result.messages
                 }, function () {
-                    history.pushState(_this.state, result.currentChat.chatName, "/c/" + result.currentChat.chatName);
+                    if (_this.state.currentChat) {
+                        var chatName = _this.state.currentChat.chatName.replace(' ', '_');
+                        history.pushState(_this.state, result.currentChat.chatName, "/c/" + chatName);
+                    }
                 });
             });
         };
@@ -80,6 +85,13 @@ var App = /** @class */ (function (_super) {
                 display: Routes.SIGN_UP,
             }, function () {
                 history.pushState(_this.state, 'Signup', "/create_account");
+            });
+        };
+        _this.loadChatCreation = function () {
+            _this.setState({
+                display: Routes.CHAT_CREATION
+            }, function () {
+                history.pushState(_this.state, 'Create a chat', "/create_chat");
             });
         };
         _this.login = function (credentials) {
@@ -152,14 +164,19 @@ var App = /** @class */ (function (_super) {
                 history.replaceState(this.state, 'Chatter', "/");
                 break;
             case Routes.CHAT_ROOM:
-                if (this.state.currentChat)
-                    history.replaceState(this.state, this.state.currentChat.chatName, "/c/" + this.state.currentChat.chatName);
+                if (this.state.currentChat) {
+                    var chatName = this.state.currentChat.chatName.replace(' ', '_');
+                    history.replaceState(this.state, this.state.currentChat.chatName, "/c/" + chatName);
+                }
                 break;
             case Routes.SIGN_UP:
                 history.replaceState(this.state, 'Signup', '/create_account');
                 break;
             case Routes.LOG_IN:
                 history.replaceState(this.state, 'Login', '/login');
+                break;
+            case Routes.CHAT_CREATION:
+                history.replaceState(this.state, 'Create a chat', '/create_chat');
                 break;
             default:
                 console.log("[-] Something went wrong, the initial data is: " + this.props.__INITIAL_DATA__);
@@ -179,16 +196,18 @@ var App = /** @class */ (function (_super) {
             case Routes.CHAT_ROOM: // route: '/chat/[chatName]'
                 return (react_1.default.createElement(ChatRoom_1.default, { chat: this.state.currentChat, user: this.state.user, messages: this.state.messages, goToLogin: this.loadLogin, goToSignup: this.loadSignup }));
             case Routes.SIGN_UP: // route: '/create_account'
-                return (react_1.default.createElement(Signup_1.default, { login: this.login, goToLogin: this.loadLogin, goToChatter: this.loadMain }));
+                return (react_1.default.createElement(Signup_1.default, { login: this.login, goToLogin: this.loadLogin, goToChatter: this.loadMain, user: this.state.user }));
             case Routes.LOG_IN: // route: '/login'
-                return (react_1.default.createElement(Login_1.default, { login: this.login, goToSignup: this.loadSignup, goToChatter: this.loadMain }));
+                return (react_1.default.createElement(Login_1.default, { login: this.login, goToSignup: this.loadSignup, goToChatter: this.loadMain, user: this.state.user }));
+            case Routes.CHAT_CREATION: // route: '/create_chat'
+                return (react_1.default.createElement(ChatCreation_1.default, { goToChatter: this.loadMain, user: this.state.user }));
             default:
                 return "Something went wrong, the initial data is: " + JSON.stringify(this.props.__INITIAL_DATA__);
         }
     };
     App.prototype.render = function () {
         return (react_1.default.createElement("div", { id: "flexer", className: "ui grid" },
-            react_1.default.createElement(Header_1.default, { goToChatter: this.loadMain, goToLogin: this.loadLogin, goToSignup: this.loadSignup, user: this.state.user, logout: this.logout }),
+            react_1.default.createElement(Header_1.default, { goToChatter: this.loadMain, goToChatCreation: this.loadChatCreation, goToLogin: this.loadLogin, goToSignup: this.loadSignup, user: this.state.user, logout: this.logout, display: this.state.display }),
             this.contentSwitch()));
     };
     return App;

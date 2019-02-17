@@ -142,3 +142,20 @@ export function payCP(userId:string, amount:number) : AxiosPromise {
     })
 }
 
+export function checkChatNameTaken(chatName:string) : AxiosPromise {
+  return axios.get(`/api/chats/check/${chatName}`)
+    .then(response => {
+      handleBadFetchStatus(response, `${serverUrl}/api/chats/check/${chatName}`, 'oops')
+      return response.data;
+    });
+}
+
+export function createChat(chat:IChat) : AxiosPromise {
+  return axios.post('/api/chats/create', chat)
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/chats/create/${chat}`, 'oops'))
+        return response.data;
+      return { created: false };
+    })
+}
+

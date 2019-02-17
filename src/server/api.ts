@@ -401,6 +401,8 @@ router.get('/api/chats/full/name/:chatName', (req : express.Request, res) => {
     return;
   }
 
+  chatName = chatName.replace('_', ' ');
+
   mdb.collection('chats').findOne({ chatName })
     .then(chat => {
       if (!chat) {
@@ -461,6 +463,94 @@ router.get('/api/messages/:chatId', (req : express.Request, res) => {
     })
 });
 
+// Checks if [chatName] is taken, true if taken, false otherwise
+router.get('/api/chats/check/:chatName', (req : express.Request, res : express.Response) => {
+  if (!req.params.chatName) {
+    res.send(false);
+    return;
+  }
+
+  const chatName = req.params.chatName;
+
+  mdb.collection('chats').findOne({chatName})
+    .then(result => {
+      if(!result)
+        res.send(false);
+      else
+        res.send(true);
+    })
+    .catch(err => {
+      console.error(`[-] Could not search for chatName: ${JSON.stringify(chatName)}.\nError:${err}`);
+      res.send(null).status(404);
+    });
+});
+
+// Inserts a new user to db
+router.post('/api/chats/create', 
+// server-side validation with express-validator
+[
+  //chat name
+  check('chatName').isLength({ min:3, max:50 })
+  .withMessage('chat name must between 3-50 characters, has to contain atleast one letter'),
+  //chat description
+  check('chatDescription').isLength({ min:3, max:250 })
+  .withMessage('chat description must between 3-250 characters'),
+  ],
+ (req : express.Request, res : express.Response) => {
+  
+  let chat : IChat = req.body;
+
+  // checks if the request has a chat object
+  if (!chat) {
+    // the request is invalid
+    res.send({ created: false }).status(400)
+    return;
+  }
+
+  // checking server-side validation results
+  const chatDataValidation = validationResult(req);
+  if (!chatDataValidation.isEmpty()) {
+    // the user tried to pass the client side validation but got caught
+    res.send({ created: false, errors: chatDataValidation.mapped() }).status(400);
+    return;
+  }
+
+  // assigning an avatar img url using the avatar api 
+  chat.users = [];
+
+  mdb.collection('chats').findOne({ chatName: chat.chatName })
+    .then((foundChat : any) : any=> {
+      if(foundChat) {
+        res.send({ created: false, errors: { chatName: { msg: 'chat name already exists'}} }).status(400);
+        return null;
+      }
+      return mdb.collection('chats').insertOne(chat)
+    })
+    .catch((err : any) => {
+      console.error(`[-] Could not search for chatName: ${JSON.stringify(chat.chatName)}.\nError:${err}`);
+      res.send(null).status(404);
+    })
+    // finally inserting the chat into the DB
+    .then((result : any) : any => {
+      if(!result) return;
+      // The chat has been successfuly created
+      if(result.insertedCount === 1) { 
+        res.send({
+          created: true,
+          chat: result.ops[0]
+        }).status(200);
+      }
+      // Could not insert chat into the DB
+      else {
+        console.error(`[-] Could not insert chat: ${JSON.stringify(chat)}.`);
+        res.send({ created: false }).status(400);
+      }
+    })
+    .catch((err : any)=> {
+      console.error(`[-] Could not insert chat: ${JSON.stringify(chat)}.\nError:${err}`);
+      res.send({ created: false }).status(400);
+    });
+});
 
 
 /**

@@ -88,6 +88,12 @@ exports.routes = [
         exact: true,
         strict: false,
         dataFetcher: fetchLoginPage
+    },
+    {
+        path: '/create_chat',
+        exact: true,
+        strict: false,
+        dataFetcher: fetchChatCreationPage
     }
 ];
 // A function that helps to handle fetch requests error messages
@@ -172,6 +178,20 @@ function fetchLoginPage(req) {
         return __generator(this, function (_a) {
             __INITIAL_DATA__ = defaultAppState;
             __INITIAL_DATA__.display = App_1.Routes.LOG_IN;
+            return [2 /*return*/, ({
+                    __INITIAL_MARKUP__: server_1.default.renderToString(react_1.default.createElement(App_1.default, __assign({}, __INITIAL_DATA__))),
+                    __INITIAL_DATA__: __INITIAL_DATA__
+                })];
+        });
+    });
+}
+// route '/create_chat'
+function fetchChatCreationPage(req) {
+    return __awaiter(this, void 0, void 0, function () {
+        var __INITIAL_DATA__;
+        return __generator(this, function (_a) {
+            __INITIAL_DATA__ = defaultAppState;
+            __INITIAL_DATA__.display = App_1.Routes.CHAT_CREATION;
             return [2 /*return*/, ({
                     __INITIAL_MARKUP__: server_1.default.renderToString(react_1.default.createElement(App_1.default, __assign({}, __INITIAL_DATA__))),
                     __INITIAL_DATA__: __INITIAL_DATA__

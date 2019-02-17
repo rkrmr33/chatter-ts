@@ -5,12 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 /// <reference path="./interfaces.d.ts" />
 var react_1 = __importDefault(require("react"));
-function isLoggedIn(props) {
-    /*
-    <img className="ui avatar image" src={props.user.avatar} id="userImg" />
-    <div id="userLabel" className="ui horizontal label" style={{backgroundColor: `#${props.user.specialColor}`}}>{props.user.username}</div>
-    <a id="logout-btn" className="item" onClick={props.logout}>Log out</a>
-    */
+var App_1 = require("../App");
+function isLoggedInRightMenu(props) {
     if (props.user) {
         return (react_1.default.createElement("div", { className: "right menu" },
             react_1.default.createElement("a", { className: "ui image label", id: "userParentItem", style: { backgroundColor: "#" + props.user.specialColor } },
@@ -27,18 +23,24 @@ function isLoggedIn(props) {
                 react_1.default.createElement("div", { id: "logout-btn", className: "detail", onClick: props.logout }, "Log out"))));
     }
     return (react_1.default.createElement("div", { className: "right menu" },
-        react_1.default.createElement("a", { className: "item", onClick: props.goToSignup }, "Sign up"),
-        react_1.default.createElement("a", { className: "item", onClick: props.goToLogin }, "Log in")));
+        react_1.default.createElement("a", { className: props.display === App_1.Routes.SIGN_UP ? 'active item' : 'item', onClick: props.goToSignup }, "Sign up"),
+        react_1.default.createElement("a", { className: props.display === App_1.Routes.LOG_IN ? 'active item' : 'item', onClick: props.goToLogin }, "Log in")));
+}
+function isLoggedInLeftMenu(props) {
+    if (props.user) {
+        return (react_1.default.createElement("a", { className: props.display === App_1.Routes.CHAT_CREATION ? 'active item' : 'item', onClick: function () { props.goToChatCreation(); } }, "Create a chat"));
+    }
+    return;
 }
 function Header(props) {
     return (react_1.default.createElement("div", { className: " sixteen wide column" },
         react_1.default.createElement("div", { id: "header-menu", className: "ui secondary pointing menu" },
-            react_1.default.createElement("a", { className: "active item", onClick: props.goToChatter },
+            react_1.default.createElement("a", { className: props.display === App_1.Routes.MAIN ? 'active item' : 'item', onClick: props.goToChatter },
                 react_1.default.createElement("span", null,
                     react_1.default.createElement("img", { id: "header-icon", src: "/chatter-icon.ico" }),
                     "Chatter")),
-            react_1.default.createElement("a", { className: "item" }, "Chats"),
-            isLoggedIn(props))));
+            isLoggedInLeftMenu(props),
+            isLoggedInRightMenu(props))));
 }
 exports.default = Header;
 ;

@@ -2,7 +2,8 @@ declare enum Routes{
   MAIN = 0,
   CHAT_ROOM = 1,
   SIGN_UP = 2,
-  LOG_IN = 3
+  LOG_IN = 3,
+  CHAT_CREATION = 4
 }
 
 interface IAppState {
@@ -15,15 +16,17 @@ interface IAppState {
 
 
 interface IHeader {
+  display? : Routes;
   user? : IUser;
   goToChatter() : void;
+  goToChatCreation() : void;
   goToLogin() : void;
   goToSignup() : void;
   logout() : void;
 }
 
 interface IChat {
-  _id : string;
+  _id? : string;
   chatOwner : string;
   chatName : string;
   chatDescription : string;
@@ -46,7 +49,7 @@ interface IUser {
 
 interface IMessage {
   _id? : string;
-  chatId : string;
+  chatId? : string;
   user : IUser;
   body : string;
   votes : Array<string>;
@@ -93,6 +96,7 @@ interface ISignupProps {
   login(credentials:any) : any;
   goToLogin() : void;
   goToChatter() : void;
+  user : IUser | undefined;
 }
 
 interface ISignupState {
@@ -102,10 +106,10 @@ interface ISignupState {
   username : string;
   password1 : string;
   password2 : string;
-  formErrors : IFormErrors;
+  formErrors : ISignupFormErrors;
 }
 
-interface IFormErrors {
+interface ISignupFormErrors {
   firstName : string;
   lastName : string;
   email : string;
@@ -115,10 +119,32 @@ interface IFormErrors {
   [key:string]:string;
 }
 
+
+interface IChatCreationProps {
+  goToChatter() : void;
+  user : IUser | undefined;
+}
+
+interface IChatCreationState {
+  chatName: string;
+  chatDescription: string;
+  chatImageUrl : string;
+  formErrors : IChatCreationFormErrors
+  resultMsg : string;
+  notEnoughCP: string;
+}
+
+interface IChatCreationFormErrors {
+  chatName : string;
+  chatDescription : string;
+  [key:string]:string;
+}
+
 interface ILoginProps {
   login(credentials:any) : any;
   goToSignup() : void;
   goToChatter() : void;
+  user : IUser | undefined;
 }
 
 interface ILoginState {

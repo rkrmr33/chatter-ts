@@ -34,7 +34,13 @@ export default class Signup extends React.Component<ISignupProps, ISignupState> 
 
   componentDidMount() {
     util = require('../util');
-  }
+	}
+	
+	componentWillReceiveProps(nextProps : ISignupProps) {
+		if (nextProps.user) { // if already signed in than go back to main page
+			this.props.goToChatter();
+		}
+	}
   
   handleSubmit = (e : any) => {
     e.preventDefault();
@@ -109,7 +115,7 @@ export default class Signup extends React.Component<ISignupProps, ISignupState> 
 		e.preventDefault();
 
 		const {name, value} : {name:string, value:string} = e.target;
-		let formErrors : IFormErrors = this.state.formErrors;
+		let formErrors : ISignupFormErrors = this.state.formErrors;
 
 		switch(name) {
 			case 'firstName': 

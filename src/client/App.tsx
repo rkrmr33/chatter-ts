@@ -7,6 +7,7 @@ import ChatList from './Components/ChatList';
 import ChatRoom from './Components/ChatRoom';
 import Signup from './Components/Signup';
 import Login from './Components/Login';
+import ChatCreation from './Components/ChatCreation';
 
 
 // utils file will be imported once the document has been defined
@@ -17,7 +18,8 @@ export enum Routes{
   MAIN = 0,
   CHAT_ROOM = 1,
   SIGN_UP = 2,
-  LOG_IN = 3
+  LOG_IN = 3,
+  CHAT_CREATION = 4
 }
 
 class App extends Component<any, IAppState> {
@@ -45,14 +47,19 @@ class App extends Component<any, IAppState> {
         history.replaceState(this.state, 'Chatter', `/`);
         break;
       case Routes.CHAT_ROOM:
-        if(this.state.currentChat)
-          history.replaceState(this.state, this.state.currentChat.chatName, `/c/${this.state.currentChat.chatName}`);
+        if(this.state.currentChat) {
+          let chatName = this.state.currentChat.chatName.replace(' ', '_');
+          history.replaceState(this.state, this.state.currentChat.chatName, `/c/${chatName}`);
+        }
         break;
       case Routes.SIGN_UP:
         history.replaceState(this.state, 'Signup', '/create_account');
         break;
       case Routes.LOG_IN:
         history.replaceState(this.state, 'Login', '/login');
+        break;
+      case Routes.CHAT_CREATION:
+        history.replaceState(this.state, 'Create a chat', '/create_chat');
         break;
       default:
         console.log(`[-] Something went wrong, the initial data is: ${this.props.__INITIAL_DATA__}`);
@@ -89,7 +96,10 @@ class App extends Component<any, IAppState> {
           currentChat: result.currentChat,
           messages: result.messages
         }, () => {
-          history.pushState(this.state, result.currentChat.chatName, `/c/${result.currentChat.chatName}`);
+          if (this.state.currentChat) {
+            let chatName = this.state.currentChat.chatName.replace(' ', '_');
+            history.pushState(this.state, result.currentChat.chatName, `/c/${chatName}`);
+          }
         });
       });
   }
@@ -108,6 +118,14 @@ class App extends Component<any, IAppState> {
       }, () => {
         history.pushState(this.state, 'Signup', `/create_account`);
       });
+  }
+
+  loadChatCreation = () : void => {
+    this.setState({
+      display: Routes.CHAT_CREATION
+    }, () => {
+      history.pushState(this.state, 'Create a chat', `/create_chat`);
+    })
   }
 
   login = (credentials:any) : AxiosPromise => {
@@ -185,12 +203,19 @@ class App extends Component<any, IAppState> {
                   login={this.login}
                   goToLogin={this.loadLogin}
                   goToChatter={this.loadMain}
+                  user={ this.state.user }
                   />)
       case Routes.LOG_IN:        // route: '/login'
         return (<Login 
                   login={this.login}
                   goToSignup={this.loadSignup}
                   goToChatter={this.loadMain}
+                  user={ this.state.user }
+                  />)
+      case Routes.CHAT_CREATION: // route: '/create_chat'
+        return (<ChatCreation
+                  goToChatter={this.loadMain}
+                  user={ this.state.user }
                   />)
       default:
         return `Something went wrong, the initial data is: ${JSON.stringify(this.props.__INITIAL_DATA__)}`;
@@ -202,10 +227,12 @@ class App extends Component<any, IAppState> {
       <div id="flexer" className="ui grid">
         <Header 
           goToChatter={this.loadMain}
+          goToChatCreation={this.loadChatCreation}
           goToLogin={this.loadLogin}
           goToSignup={this.loadSignup}
           user={this.state.user}
-          logout={this.logout} />
+          logout={this.logout}
+          display={this.state.display} />
 
           { this.contentSwitch() }
       </div>

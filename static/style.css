@@ -146,6 +146,8 @@ body {
 }
 
 
+
+
 /* --- CHAT ROOM CSS --- */
 
 .chatroom-container {
@@ -381,4 +383,29 @@ body {
 }
 #userLabel {
 	color: white;
+}
+
+
+/* --- Chat Creation STYLE --- */
+.new-chat-image {
+	border-radius: 45px;
+	width: 90px !important;
+	height: 90px !important;
+	overflow: hidden;
+	padding: 0px;
+	border: 1px solid rgba(0,0,0,.25);
+	margin-right: 20px;
+	margin-left: 10px;
+}
+.new-chat-image img{
+
+	width: 90px !important;
+	height: 90px !important;
+}
+
+#chatNameFieldIcon {
+	float: right;
+	margin-top: -28px;
+	margin-right: 5px;
+	font-size: 1.2em;
 }

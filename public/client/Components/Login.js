@@ -87,6 +87,11 @@ var Login = /** @class */ (function (_super) {
         };
         return _this;
     }
+    Login.prototype.componentWillReceiveProps = function (nextProps) {
+        if (nextProps.user) { // if already signed in than go back to main page
+            this.props.goToChatter();
+        }
+    };
     Login.prototype.render = function () {
         return (react_1.default.createElement("div", { className: "ui four wide column", id: "registrationDiv" },
             react_1.default.createElement("h3", { className: "ui dividing header" },

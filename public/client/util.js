@@ -140,3 +140,20 @@ function payCP(userId, amount) {
     });
 }
 exports.payCP = payCP;
+function checkChatNameTaken(chatName) {
+    return axios_1.default.get("/api/chats/check/" + chatName)
+        .then(function (response) {
+        handleBadFetchStatus(response, exports.serverUrl + "/api/chats/check/" + chatName, 'oops');
+        return response.data;
+    });
+}
+exports.checkChatNameTaken = checkChatNameTaken;
+function createChat(chat) {
+    return axios_1.default.post('/api/chats/create', chat)
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/chats/create/" + chat, 'oops'))
+            return response.data;
+        return { created: false };
+    });
+}
+exports.createChat = createChat;

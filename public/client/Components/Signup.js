@@ -207,6 +207,11 @@ var Signup = /** @class */ (function (_super) {
     Signup.prototype.componentDidMount = function () {
         util = require('../util');
     };
+    Signup.prototype.componentWillReceiveProps = function (nextProps) {
+        if (nextProps.user) { // if already signed in than go back to main page
+            this.props.goToChatter();
+        }
+    };
     Signup.prototype.render = function () {
         return (react_1.default.createElement("div", { className: "ui seven wide column", id: "registrationDiv" },
             react_1.default.createElement("form", { onSubmit: this.handleSubmit },
