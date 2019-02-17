@@ -41,7 +41,7 @@ export default function Header(props : IHeader) {
   return (
     <div className=" sixteen wide column">
 		<div id="header-menu" className="ui secondary pointing menu">
-			<a className={props.display === Routes.MAIN ? 'active item' : 'item'} onClick={props.goToChatter}>
+			<a className={props.display === Routes.MAIN ? 'active item' : 'item'} href="/">
 				<span>
 					<img id="header-icon" src="/chatter-icon.ico"></img>
 				Chatter

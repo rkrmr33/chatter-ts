@@ -35,7 +35,7 @@ function isLoggedInLeftMenu(props) {
 function Header(props) {
     return (react_1.default.createElement("div", { className: " sixteen wide column" },
         react_1.default.createElement("div", { id: "header-menu", className: "ui secondary pointing menu" },
-            react_1.default.createElement("a", { className: props.display === App_1.Routes.MAIN ? 'active item' : 'item', onClick: props.goToChatter },
+            react_1.default.createElement("a", { className: props.display === App_1.Routes.MAIN ? 'active item' : 'item', href: "/" },
                 react_1.default.createElement("span", null,
                     react_1.default.createElement("img", { id: "header-icon", src: "/chatter-icon.ico" }),
                     "Chatter")),
