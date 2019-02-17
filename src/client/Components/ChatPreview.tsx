@@ -2,14 +2,15 @@
 import React from 'react';
 
 function handleClick(props: IChatPreview) : void {
-  props.onChatClick(props.chat._id);
+  if (props.chat._id)
+    props.onChatClick(props.chat._id);
 }
 
 export default function ChatPreview(props : IChatPreview) {
   return (
-    <div className="item" onClick={ () => { handleClick(props) } }>
+    <div className="item" onClick={ () => { handleClick(props) } } id="chatPreviewContent">
       <img className="ui avatar image chat-preview-icon" src={ props.chat.chatImage } />
-      <div className="content">
+      <div className="content" >
         <div className="header"><span>{ props.chat.chatName }</span></div>
           { props.chat.chatDescription }
       </div>

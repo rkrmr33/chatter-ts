@@ -12,17 +12,6 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -64,7 +53,7 @@ var ChatRoom = /** @class */ (function (_super) {
             var newMessage = JSON.parse(e.data);
             var chatMessages = _this.state.messages;
             if (chatMessages && newMessage) {
-                chatMessages.push(newMessage);
+                chatMessages[newMessage._id] = newMessage;
                 _this.setState({ messages: chatMessages });
             }
         };
@@ -84,6 +73,12 @@ var ChatRoom = /** @class */ (function (_super) {
                 // update users list
                 _this.setState({ users: users });
             }
+        };
+        _this.handleVotesEvents = function (e) {
+            0;
+            var data = JSON.parse(e.data); // { _id - message id, username - username that voted }
+            _this.state.messages[data._id].votes.push(data.username);
+            _this.forceUpdate();
         };
         _this.addUserToChatRoom = function () {
             enteredChat = true;
@@ -113,27 +108,32 @@ var ChatRoom = /** @class */ (function (_super) {
                 });
             }
         };
+        _this.addVote = function (message) {
+            if (util && _this.props.user) {
+                util.newVote(message, _this.props.user.username); // promise
+            }
+        };
         /**
          * This function grabs all the messages we fetched from the
          * db, related to this chat-room id, and then displays them
          * all. If there are not messages at all, display a default
          * message.
          */
-        _this.loadFetchedMessages = function () {
-            if (_this.props.chat && (!_this.state.messages || _this.state.messages.length == 0)) {
+        _this.renderMessages = function () {
+            if (_this.props.chat && (!_this.state.messages || Object.keys(_this.state.messages).length == 0)) {
                 // if there are no messages in the chat, sends a default message inviting people to chat.
-                return (react_1.default.createElement(Message_1.default, __assign({}, {
-                    _id: '1234567890',
-                    chatId: _this.props.chat._id,
-                    user: { username: 'Chatter Bot', specialColor: '#be28d2', avatar: '/chatter-icon.ico' },
-                    body: 'There are no messages on this chat yet... C\'mon! Be the first to send a message! ; )',
-                    timestamp: new Date().toString(),
-                    votes: []
-                })));
+                return (react_1.default.createElement(Message_1.default, { voteMessage: _this.addVote, currentUser: undefined, message: {
+                        _id: '1234567890',
+                        chatId: _this.props.chat._id,
+                        user: { username: 'Chatter Bot', specialColor: '#be28d2', avatar: '/chatter-icon.ico' },
+                        body: 'There are no messages on this chat yet... C\'mon! Be the first to send a message! ; )',
+                        timestamp: new Date().toString(),
+                        votes: []
+                    } }));
             }
             // if there are any messages fetched from the db, loads them and display in the chat.
             else if (_this.state.messages) {
-                var messagesMarkup = _this.state.messages.map(function (m) { return react_1.default.createElement(Message_1.default, __assign({ key: m._id }, m)); });
+                var messagesMarkup = Object.keys(_this.state.messages).map(function (id) { return react_1.default.createElement(Message_1.default, { voteMessage: _this.addVote, key: id, message: _this.state.messages[id], currentUser: _this.props.user }); });
                 return messagesMarkup;
             }
         };
@@ -193,6 +193,7 @@ var ChatRoom = /** @class */ (function (_super) {
             dataStream.addEventListener('new-message', this.handleMessagesEvents);
             dataStream.addEventListener('user-enter', this.handleUsersEvents);
             dataStream.addEventListener('user-quit', this.handleUsersEvents);
+            dataStream.addEventListener('new-vote', this.handleVotesEvents);
         }
         catch (err) {
             throw err;
@@ -221,7 +222,7 @@ var ChatRoom = /** @class */ (function (_super) {
                                     react_1.default.createElement("i", { className: "certificate icon chatter-color" }),
                                     react_1.default.createElement("b", null, this.props.chat.chatOwner))),
                             react_1.default.createElement("div", { className: "messagesCount" },
-                                this.state.messages.length,
+                                Object.keys(this.state.messages).length,
                                 " ",
                                 react_1.default.createElement("i", { className: "envelope icon" })),
                             react_1.default.createElement("div", { className: "inChatUsersCount" },
@@ -229,7 +230,7 @@ var ChatRoom = /** @class */ (function (_super) {
                                 " ",
                                 react_1.default.createElement("i", { className: "user icon" }))),
                         react_1.default.createElement("div", { className: this.state.loading ? 'ui loading form chat-area' : 'chat-area', id: "scroll" },
-                            react_1.default.createElement("div", { className: "ui celled list", id: "messages-list" }, this.loadFetchedMessages()),
+                            react_1.default.createElement("div", { className: "ui celled list", id: "messages-list" }, this.renderMessages()),
                             react_1.default.createElement("div", { style: { float: 'left', clear: 'both' }, ref: function (st) { scrollTarget = st; } })),
                         this.restrictGuests(this.props.user)))));
         else

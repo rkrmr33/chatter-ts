@@ -77,15 +77,15 @@ function login(_a) {
     });
 }
 exports.login = login;
-function relogin() {
-    return axios_1.default.get('/api/users/current_user')
+function authenticate(userCredentials) {
+    return axios_1.default.get('/api/users/authenticate')
         .then(function (response) {
         if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/current_user", 'oops'))
-            return response.data;
+            return response.data; // the authenticated user or undefined if the credentials were wrong
         return response.statusText;
     });
 }
-exports.relogin = relogin;
+exports.authenticate = authenticate;
 function logout() {
     return axios_1.default.get('/api/users/logout')
         .then(function (response) {
@@ -122,3 +122,38 @@ function quitChat(username, chatId) {
     });
 }
 exports.quitChat = quitChat;
+function newVote(message, username) {
+    return axios_1.default.post('/api/messages/vote', { message: message, username: username })
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/messages/vote/" + JSON.stringify({ message: message, username: username }), 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.newVote = newVote;
+function payCP(userId, amount) {
+    return axios_1.default.post('/api/users/pay', { userId: userId, amount: amount })
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/users/pay/" + JSON.stringify({ userId: userId, amount: amount }), 'oops'))
+            return response.data;
+        return response.statusText;
+    });
+}
+exports.payCP = payCP;
+function checkChatNameTaken(chatName) {
+    return axios_1.default.get("/api/chats/check/" + chatName)
+        .then(function (response) {
+        handleBadFetchStatus(response, exports.serverUrl + "/api/chats/check/" + chatName, 'oops');
+        return response.data;
+    });
+}
+exports.checkChatNameTaken = checkChatNameTaken;
+function createChat(chat) {
+    return axios_1.default.post('/api/chats/create', chat)
+        .then(function (response) {
+        if (!handleBadFetchStatus(response, exports.serverUrl + "/api/chats/create/" + chat, 'oops'))
+            return response.data;
+        return { created: false };
+    });
+}
+exports.createChat = createChat;

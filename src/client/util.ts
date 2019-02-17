@@ -77,11 +77,13 @@ export function login({username, password} : {username: string, password: string
     })
 }
 
-export function relogin() : AxiosPromise {
-  return axios.get('/api/users/current_user')
+
+
+export function authenticate(userCredentials : any) : AxiosPromise {
+  return axios.get('/api/users/authenticate')
   .then(response => {
     if (!handleBadFetchStatus(response, `${serverUrl}/api/users/current_user`, 'oops'))
-      return response.data;
+      return response.data; // the authenticated user or undefined if the credentials were wrong
     return response.statusText;
   })
 }
@@ -119,6 +121,41 @@ export function quitChat(username:string, chatId:string) : AxiosPromise {
       if (!handleBadFetchStatus(response, `${serverUrl}/api/chat/quit/${JSON.stringify({username, chatId})}`, 'oops'))
         return response.data;
       return response.statusText;
+    })
+}
+
+export function newVote(message:IMessage, username:string) : AxiosPromise {
+  return axios.post('/api/messages/vote', {message, username})
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/messages/vote/${JSON.stringify({message, username})}`, 'oops'))
+        return response.data;
+      return response.statusText;
+    })
+}
+
+export function payCP(userId:string, amount:number) : AxiosPromise {
+  return axios.post('/api/users/pay', {userId, amount})
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/users/pay/${JSON.stringify({userId, amount})}`, 'oops'))
+        return response.data;
+      return response.statusText;
+    })
+}
+
+export function checkChatNameTaken(chatName:string) : AxiosPromise {
+  return axios.get(`/api/chats/check/${chatName}`)
+    .then(response => {
+      handleBadFetchStatus(response, `${serverUrl}/api/chats/check/${chatName}`, 'oops')
+      return response.data;
+    });
+}
+
+export function createChat(chat:IChat) : AxiosPromise {
+  return axios.post('/api/chats/create', chat)
+    .then(response => {
+      if (!handleBadFetchStatus(response, `${serverUrl}/api/chats/create/${chat}`, 'oops'))
+        return response.data;
+      return { created: false };
     })
 }
 

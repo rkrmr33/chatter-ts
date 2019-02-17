@@ -1,6 +1,6 @@
 import assert from 'assert';
 import express from 'express';
-import mongodb, { ObjectID, MongoError } from 'mongodb';
+import mongodb, { ObjectID, MongoError, GridFSBucket, GridFSBucketWriteStream } from 'mongodb';
 import axios from 'axios';
 import { check, validationResult } from 'express-validator/check';
 import bcrypt from 'bcrypt';
@@ -88,6 +88,8 @@ router.post('/api/users/create',
 
   // assigning an avatar img url using the avatar api 
   user.avatar = config.AVATAR_API_URL + user.email;
+  user.votes = 0;
+  user.cp = 0;
 
   mdb.collection('users').findOne({ username: user.username })
     .then((foundUser : any) : any=> {
@@ -205,12 +207,18 @@ router.post('/api/users/login', (req : express.Request, res : express.Response) 
           return;
         }
 
-        // all is good, sending user object
-        jwt.sign(user, config.SECRET_KEY, (err : any, userToken : string) => {
+        let credentials = {
+          _id: user._id,
+          password: user.password
+        }
+
+        // all is good, sending user credetials object
+        jwt.sign(credentials, config.SECRET_KEY, (err : any, userToken : string) => {
           if (err) throw err;
           if (req.session) {
             req.session.userToken = userToken;
           }
+          delete user.password;
           res.send({success: true, user})
         })
       });
@@ -246,6 +254,49 @@ router.get('/api/users/current_user', (req : express.Request, res : express.Resp
   }
 });
 
+// gets the request session user token and sends back the user object to store in the app state
+router.get('/api/users/authenticate', (req : express.Request, res : express.Response) => {
+  let userCredentials : any;
+  
+  if (!req.session || !req.session.userToken) {
+    res.send(false);
+    return;
+  }
+  else {
+    jwt.verify(req.session.userToken, config.SECRET_KEY, (err : any, user : any) => {
+      if (err) throw err;
+      userCredentials = user;
+    })
+  }
+  
+
+  if (!userCredentials) {
+    res.send(false);
+    return;
+  }
+
+  mdb.collection('users').findOne({ _id: new ObjectID(userCredentials._id) })
+    .then(result => {
+      if (!result) {
+        res.status(404).send(`user with id ${userCredentials._id} was not found.`);
+        return;
+      }
+
+      if (result.password !== userCredentials.password) {
+        res.status(400).send(undefined);
+        return;
+      }
+
+      delete result.password;
+
+      res.send(result);
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).send(false);
+    })
+});
+
 
 
 /**
@@ -264,6 +315,12 @@ router.get('/api/chats', (req : express.Request, res) => {
         console.error(`[-] Assertion Error: ${e}`);
         res.send('no chats found').status(404);
       }
+
+      chatsArray.sort((a,b) => {
+        return b.users.length - a.users.length;
+      })
+
+      // format data to a dictionary stracture
       chatsArray.forEach(chat => {
         chats[chat._id] = chat;
       });
@@ -307,8 +364,9 @@ router.get('/api/chats/full/id/:chatId', (req : express.Request, res) => {
         res.sendStatus(404) // chat not found
         return;
       }
+      let messages : any = {};
       mdb.collection('messages').find({ chatId })
-        .toArray((err : MongoError, messages) => {
+        .toArray((err : MongoError, messagesArray) => {
           try {
             assert.equal(null, err);
           } catch(e) {
@@ -316,6 +374,12 @@ router.get('/api/chats/full/id/:chatId', (req : express.Request, res) => {
             res.send([]).status(404);
             return;
           }
+
+          // format data to a dictionary stracture
+          messagesArray.forEach(message => {
+            messages[message._id] = message
+          });
+
           res.send({
             currentChat: chat,
             messages
@@ -337,6 +401,8 @@ router.get('/api/chats/full/name/:chatName', (req : express.Request, res) => {
     return;
   }
 
+  chatName = chatName.replace('_', ' ');
+
   mdb.collection('chats').findOne({ chatName })
     .then(chat => {
       if (!chat) {
@@ -346,15 +412,22 @@ router.get('/api/chats/full/name/:chatName', (req : express.Request, res) => {
 
       // find messages of the chat
       const chatId = chat._id; 
+      let messages : any = {};
       mdb.collection('messages').find({ chatId: chatId.toString() })
-        .toArray((err : MongoError, messages) => {
+        .toArray((err : MongoError, messagesArray) => {
           try {
             assert.equal(null, err);
           } catch(e) {
             console.error(`[-] Assertion Error: ${e}`);
-            res.send([]).status(404);
+            res.send(false).status(404);
             return;
           }
+
+          // format data to a dictionary stracture
+          messagesArray.forEach(message => {
+            messages[message._id] = message
+          });
+
           res.send({
             currentChat: chat,
             messages
@@ -390,6 +463,94 @@ router.get('/api/messages/:chatId', (req : express.Request, res) => {
     })
 });
 
+// Checks if [chatName] is taken, true if taken, false otherwise
+router.get('/api/chats/check/:chatName', (req : express.Request, res : express.Response) => {
+  if (!req.params.chatName) {
+    res.send(false);
+    return;
+  }
+
+  const chatName = req.params.chatName;
+
+  mdb.collection('chats').findOne({chatName})
+    .then(result => {
+      if(!result)
+        res.send(false);
+      else
+        res.send(true);
+    })
+    .catch(err => {
+      console.error(`[-] Could not search for chatName: ${JSON.stringify(chatName)}.\nError:${err}`);
+      res.send(null).status(404);
+    });
+});
+
+// Inserts a new user to db
+router.post('/api/chats/create', 
+// server-side validation with express-validator
+[
+  //chat name
+  check('chatName').isLength({ min:3, max:50 })
+  .withMessage('chat name must between 3-50 characters, has to contain atleast one letter'),
+  //chat description
+  check('chatDescription').isLength({ min:3, max:250 })
+  .withMessage('chat description must between 3-250 characters'),
+  ],
+ (req : express.Request, res : express.Response) => {
+  
+  let chat : IChat = req.body;
+
+  // checks if the request has a chat object
+  if (!chat) {
+    // the request is invalid
+    res.send({ created: false }).status(400)
+    return;
+  }
+
+  // checking server-side validation results
+  const chatDataValidation = validationResult(req);
+  if (!chatDataValidation.isEmpty()) {
+    // the user tried to pass the client side validation but got caught
+    res.send({ created: false, errors: chatDataValidation.mapped() }).status(400);
+    return;
+  }
+
+  // assigning an avatar img url using the avatar api 
+  chat.users = [];
+
+  mdb.collection('chats').findOne({ chatName: chat.chatName })
+    .then((foundChat : any) : any=> {
+      if(foundChat) {
+        res.send({ created: false, errors: { chatName: { msg: 'chat name already exists'}} }).status(400);
+        return null;
+      }
+      return mdb.collection('chats').insertOne(chat)
+    })
+    .catch((err : any) => {
+      console.error(`[-] Could not search for chatName: ${JSON.stringify(chat.chatName)}.\nError:${err}`);
+      res.send(null).status(404);
+    })
+    // finally inserting the chat into the DB
+    .then((result : any) : any => {
+      if(!result) return;
+      // The chat has been successfuly created
+      if(result.insertedCount === 1) { 
+        res.send({
+          created: true,
+          chat: result.ops[0]
+        }).status(200);
+      }
+      // Could not insert chat into the DB
+      else {
+        console.error(`[-] Could not insert chat: ${JSON.stringify(chat)}.`);
+        res.send({ created: false }).status(400);
+      }
+    })
+    .catch((err : any)=> {
+      console.error(`[-] Could not insert chat: ${JSON.stringify(chat)}.\nError:${err}`);
+      res.send({ created: false }).status(400);
+    });
+});
 
 
 /**
@@ -409,7 +570,7 @@ router.get('/api/stream/:chatId', (req : express.Request, res : express.Response
 		Connection: 'keep-alive',
 		'Content-Type': 'text/event-stream',
 		'Cache-Control': 'no-cache',
-		'Access-Control-Allow-Origin': '*'
+    'Access-Control-Allow-Origin': '*'
   });
   
   // handles new messages
@@ -439,9 +600,46 @@ router.get('/api/stream/:chatId', (req : express.Request, res : express.Response
     }
   });
 
+  // handles user quit chat
+  newVote.addListener('new-vote', (msg : IMessage, givingUsername : string, gettingUsername : string) => {
+    if (chatId === msg.chatId) {
+      res.write('event: new-vote\n');
+      res.write('data: { \n');
+      res.write(`data: "_id" : "${msg._id}",\n`);
+      res.write(`data: "username" : "${givingUsername}"\n`);
+      res.write('data: } \n\n');
+      res.write('\n\n');
+    }
+  });
+
   // sets the client re-connection time to 1-sec 
   res.write('retry: 1000\n\n');
 });
+
+// users vote event stream
+router.get('/api/stream/users/:username', (req : express.Request, res : express.Response) => {
+  const username = req.params.username;
+
+  res.writeHead(200, {
+    Connection: 'keep-alive',
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  // handles user quit chat
+  newVote.addListener('new-vote', (msg : IMessage, givingUsername : string, gettingUsername : string) => {
+    if (username === gettingUsername) {
+      res.write('event: new-vote\n');
+      res.write(`data: ${gettingUsername}`);
+      res.write('\n\n');
+    }
+  });
+
+  // sets the client re-connection time to 1-sec 
+  res.write('retry: 1000\n\n');
+})
+
 
 // Main page chat event stream
 router.get('/api/stream/all_chats/:chatIds', (req : express.Request, res : express.Response) => {
@@ -568,9 +766,11 @@ router.post('/api/chats/quit', (req : express.Request, res : express.Response) =
 		{ _id: new ObjectID(chatId)	},
 		{ $pull: { users: username } }
 	).then(result => {
-		if(result && result.ok && result.ok == 1) { // user quit
-      newUser.emit('user-quit', username, chatId)
-			res.status(200).send(true);
+    if(result && result.ok && result.ok == 1) { // user quit
+      setTimeout(()=>{  // sets a delay to allow the all_chats stream to start first
+        newUser.emit('user-quit', username, chatId)
+        res.status(200).send(true);
+      }, 500);
     }
 		else
 			res.status(400).send(false);
@@ -581,7 +781,95 @@ router.post('/api/chats/quit', (req : express.Request, res : express.Response) =
 		});
 });
 
+// Adds a vote of [username] to [message] and updates receiving users vote
+router.post('/api/messages/vote', (req : express.Request, res : express.Response) => {
+  const message : IMessage = req.body.message;
+  const givingUsername = req.body.username;
 
+  if (!message || !givingUsername) {
+    res.status(400).send(`could not add vote from ${givingUsername} to message ${message}`);
+    return;
+  }
+
+  if (message.votes.indexOf(givingUsername) > -1) {
+    res.status(400).send(`${givingUsername} already gave a vote to message ${message}`);
+    return;
+  }
+
+  const gettingUsername = message.user.username;
+
+  mdb.collection('messages').updateOne(
+    { _id: new ObjectID(message._id)},
+    { $push: { votes: givingUsername }}
+    )
+    .then((result : any) : any => {
+      if(result.result.ok) { // added vote
+        
+        return mdb.collection('users').updateOne(
+          { username: gettingUsername },
+          { $inc: { votes: 1, cp: 1 }}  // increase the votes
+          );
+      }
+      else  // was unable to add vote
+        res.send(null);
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).send('Somthing went wrong');
+    })
+    .then((result: any) => {
+      if(result.result.ok) { // added vote
+        newVote.emit('new-vote', message, givingUsername, gettingUsername)
+        res.status(200).send(true);
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).send('Somthing went wrong');
+    })
+});
+
+// takes [amount] ChatterPoints from [userId]
+router.post('/api/users/pay', (req : express.Request, res : express.Response) => {
+  const userId = req.body.userId;
+  const amount : number = req.body.amount;
+
+  if (!userId || !amount) {
+    res.status(400).send(`could not take ${amount} cp from ${userId}`);
+    return;
+  }
+  
+  mdb.collection('users').findOne({ _id: new ObjectID(userId) })
+    .then((result : any) : any => {
+      if (!result) {
+        res.status(404).send(`user with id ${userId} not found`);
+        return;
+      }
+
+      if (result.cp < amount) {
+        res.status(404).send(`user with id ${userId} has ${result.cp} cp but the amount needed is ${amount}`);
+        return;
+      }
+
+      return mdb.collection('users').updateOne(
+        { _id: new ObjectID(userId) },
+        { $inc: { cp: -amount }}
+        )
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).send('Somthing went wrong');
+    })
+    .then((result: any) => {
+      if(result.result.ok) { // taken cp
+        res.status(200).send(true);
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      res.status(500).send('Somthing went wrong');
+    })
+});
 
 
 

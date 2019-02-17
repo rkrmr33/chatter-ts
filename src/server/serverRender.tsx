@@ -7,7 +7,7 @@ import axios, { AxiosResponse } from 'axios';
 
 import App, {Routes} from '../client/App';
 import config from './config';
-import { string } from 'prop-types';
+
 
 // All the routes of the application
 export const routes = [
@@ -34,6 +34,12 @@ export const routes = [
     exact: true,
     strict: false,
     dataFetcher: fetchLoginPage
+  },
+  {
+    path: '/create_chat',
+    exact: true,
+    strict: false,
+    dataFetcher: fetchChatCreationPage
   }
 ];
 
@@ -121,6 +127,17 @@ async function fetchSignupPage(req : express.Request) {
 async function fetchLoginPage(req : express.Request) {
   const __INITIAL_DATA__ = defaultAppState;
   __INITIAL_DATA__.display = Routes.LOG_IN;
+
+  return ({
+    __INITIAL_MARKUP__: ReactDOMServer.renderToString(<App {...__INITIAL_DATA__} />),
+    __INITIAL_DATA__
+  });
+}
+
+// route '/create_chat'
+async function fetchChatCreationPage(req : express.Request) {
+  const __INITIAL_DATA__ = defaultAppState;
+  __INITIAL_DATA__.display = Routes.CHAT_CREATION;
 
   return ({
     __INITIAL_MARKUP__: ReactDOMServer.renderToString(<App {...__INITIAL_DATA__} />),

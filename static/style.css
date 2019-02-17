@@ -60,6 +60,52 @@ body {
 	margin-bottom: -2px;
 }
 
+#userParentItem {
+	font-size: 1em !important;
+	height: 36px;
+	margin-top: auto;
+	margin-bottom: auto;
+	margin-right: 5px;
+	color: white;
+	cursor: default !important;
+}
+
+#userParentItem img{
+	margin-top: -9px !important;
+	margin-left: -8px !important;
+	margin-bottom: 0px !important;
+	width: 34px !important;
+	height: 36px !important;
+}
+
+#logout-btn{
+	cursor: pointer !important;
+}
+
+#logout-btn:hover{
+	color: #cacaca !important;
+}
+
+#userParentItem div{
+	font-size: 1em;
+	color: white;
+	height: 32px;
+	margin-top: -7px !important;
+	background: none;
+	opacity: 1 !important;
+	border-left: #ffffff6c solid 1px;
+}
+
+#userParentItem div i{
+	color: white;
+}
+
+#userParentItem div img{
+	width: 25px !important;
+	height: 25px !important;
+	margin-top: -5px !important;
+}
+
 
 /* --- CHAT PREVIEW LIST CSS --- */
 
@@ -98,6 +144,8 @@ body {
 	width: 25px;
 	height: 25px;
 }
+
+
 
 
 /* --- CHAT ROOM CSS --- */
@@ -181,10 +229,44 @@ body {
 
 
 /* --- COMMENTS STYLING --- */
+.chat-image {
+	float: left !important;
+}
 
 .metadata {
 	font-size: 0.75em;
-	color: #616161
+	color: #616161;
+	padding-left: 32px;
+	margin-top: 3px;
+}
+
+.message-item {
+	cursor: pointer;
+}
+
+#hide {
+	display: none;
+}
+
+.message-item:active {
+	background-color: #be28d2 !important;
+}
+
+.message-item:hover #vote-option{
+	display: block !important;
+}
+
+.message-item:hover #vote-counter{
+	display: none !important;
+}
+
+#vote-option {
+	display: none;
+}
+
+#vote-counter {
+	display: block;
+	float: right;
 }
 
 #messages-list .item:hover {
@@ -195,6 +277,21 @@ body {
 #commentUser {
 	color: white;
 }
+
+.votes.info {
+	float: right;
+	
+}
+
+.votes.info a {
+	background-color: #a822b9 !important;
+	color: white;
+}
+
+.message-content{
+	overflow-x: auto;
+}
+
 
 /* --- REGISTRATION STYLING --- */
 #registrationDiv {
@@ -286,4 +383,29 @@ body {
 }
 #userLabel {
 	color: white;
+}
+
+
+/* --- Chat Creation STYLE --- */
+.new-chat-image {
+	border-radius: 45px;
+	width: 90px !important;
+	height: 90px !important;
+	overflow: hidden;
+	padding: 0px;
+	border: 1px solid rgba(0,0,0,.25);
+	margin-right: 20px;
+	margin-left: 10px;
+}
+.new-chat-image img{
+
+	width: 90px !important;
+	height: 90px !important;
+}
+
+#chatNameFieldIcon {
+	float: right;
+	margin-top: -28px;
+	margin-right: 5px;
+	font-size: 1.2em;
 }

@@ -30,6 +30,13 @@ export default class ChatList extends React.Component <IChatListProps, IChatList
     }
   }
 
+  // update new chat list on parent app update
+  componentWillReceiveProps(nextProps : IChatListProps) {
+    this.setState({
+      chatList: nextProps.chatList
+    });
+  }
+
   componentCleanup = () => {
     if (dataStream)
       dataStream.close();
